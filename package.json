@@ -1,0 +1,27 @@
+{
+  "name": "market-suggestion-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension that suggests relevant markets on Kalshi based on webpage content with real-time API integration",
+  "main": "background.js",
+  "scripts": {
+    "build": "cp node_modules/node-forge/dist/forge.min.js lib/forge.min.js",
+    "test": "echo 'Add tests here'",
+    "lint": "echo 'Add linting here'",
+    "install-extension": "echo 'Load the extension in Chrome by going to chrome://extensions/ and enabling Developer mode, then click Load unpacked and select this directory'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "prediction-markets",
+    "kalshi",
+    "polymarket",
+    "content-analysis",
+    "market-suggestions",
+    "api-integration"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {
+    "node-forge": "^1.3.1"
+  }
+}

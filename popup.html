@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Suggestions</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Market Suggestions</h1>
+            <div class="platform-tabs">
+                <button id="kalshi-btn" class="tab-btn active">Kalshi</button>
+                <button id="polymarket-btn" class="tab-btn">Polymarket</button>
+            </div>
+        </header>
+        
+        <div class="content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Fetching open events...</p>
+            </div>
+            
+            <div class="error" style="display: none;">
+                Failed to fetch events. Please try again.
+            </div>
+            
+            <div class="markets-container" style="display: none;">
+                <div class="markets-header">
+                    <h2>Active Events</h2>
+                    <div class="markets-count">0 open events</div>
+                </div>
+                <div class="markets-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
