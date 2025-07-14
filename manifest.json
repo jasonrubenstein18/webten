@@ -11,7 +11,8 @@
   "host_permissions": [
     "https://demo-api.kalshi.co/*",
     "https://kalshi.com/*",
-    "https://polymarket.com/*"
+    "https://polymarket.com/*",
+    "https://api.openai.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -33,4 +34,4 @@
       "matches": ["<all_urls>"]
     }
   ]
-} 
+}

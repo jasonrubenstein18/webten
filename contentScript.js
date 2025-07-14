@@ -1,14 +1,15 @@
 // Content script for analyzing webpage content
 console.log('Market Suggestion Extension: Content script loaded');
 
-// Function to extract page content
+// Function to extract page content optimized for semantic analysis
 function extractPageContent() {
     const content = {
         title: document.title || '',
         url: window.location.href,
         metaDescription: '',
         text: '',
-        keywords: []
+        keywords: [],
+        summary: ''
     };
     
     // Extract meta description
@@ -17,26 +18,110 @@ function extractPageContent() {
         content.metaDescription = metaDesc.getAttribute('content') || '';
     }
     
-    // Extract main text content (excluding scripts, styles, etc.)
-    const textElements = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6, article, main, .content');
-    const textArray = [];
-    
-    textElements.forEach(element => {
-        const text = element.textContent?.trim();
-        if (text && text.length > 20) {
-            textArray.push(text);
-        }
-    });
-    
-    content.text = textArray.join(' ').substring(0, 5000); // Limit to 5000 chars
-    
     // Extract keywords from meta tags
     const metaKeywords = document.querySelector('meta[name="keywords"]');
     if (metaKeywords) {
         content.keywords = metaKeywords.getAttribute('content')?.split(',').map(k => k.trim()) || [];
     }
     
+    // Enhanced text extraction with priority order
+    const textArray = [];
+    
+    // Priority 1: Main article content
+    const articleSelectors = [
+        'article',
+        'main',
+        '[role="main"]',
+        '.article-content',
+        '.post-content',
+        '.entry-content',
+        '.content',
+        '.story-body',
+        '.article-body'
+    ];
+    
+    let mainContent = null;
+    for (const selector of articleSelectors) {
+        mainContent = document.querySelector(selector);
+        if (mainContent) break;
+    }
+    
+    if (mainContent) {
+        // Extract from main content area
+        const contentElements = mainContent.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li');
+        contentElements.forEach(element => {
+            const text = cleanText(element.textContent);
+            if (text && text.length > 15) {
+                textArray.push(text);
+            }
+        });
+    } else {
+        // Fallback: Extract from common content elements
+        const fallbackElements = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6');
+        fallbackElements.forEach(element => {
+            // Skip navigation, footer, sidebar content
+            if (isContentElement(element)) {
+                const text = cleanText(element.textContent);
+                if (text && text.length > 15) {
+                    textArray.push(text);
+                }
+            }
+        });
+    }
+    
+    // Join and limit content for optimal embedding generation
+    const fullText = textArray.join(' ');
+    content.text = fullText.substring(0, 3000); // Limit for embedding efficiency
+    
+    // Create a summary combining title, meta description, and key content
+    const summaryParts = [
+        content.title,
+        content.metaDescription,
+        fullText.substring(0, 500)
+    ].filter(part => part && part.trim().length > 0);
+    
+    content.summary = summaryParts.join('. ').substring(0, 1000);
+    
     return content;
+}
+
+// Helper function to clean extracted text
+function cleanText(text) {
+    if (!text) return '';
+    
+    return text
+        .trim()
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/[^\w\s.,!?;:()\-]/g, '') // Remove special characters but keep punctuation
+        .replace(/\n+/g, ' '); // Replace newlines with spaces
+}
+
+// Helper function to determine if an element contains main content
+function isContentElement(element) {
+    const excludeSelectors = [
+        'nav', 'header', 'footer', 'aside', 
+        '.nav', '.navigation', '.menu', '.sidebar', 
+        '.header', '.footer', '.advertisement', '.ad',
+        '.comments', '.comment', '.social', '.share'
+    ];
+    
+    // Check if element or its parents match exclude selectors
+    let current = element;
+    while (current && current !== document.body) {
+        for (const selector of excludeSelectors) {
+            if (current.matches && current.matches(selector)) {
+                return false;
+            }
+            if (current.className && typeof current.className === 'string') {
+                if (current.className.toLowerCase().includes(selector.replace('.', ''))) {
+                    return false;
+                }
+            }
+        }
+        current = current.parentElement;
+    }
+    
+    return true;
 }
 
 // Function to analyze content and suggest relevant market topics

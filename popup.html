@@ -16,19 +16,38 @@
             </div>
         </header>
         
+        <div class="action-buttons">
+            <button id="analyze-page-btn" class="action-btn primary">
+                Analyze Page
+            </button>
+            <button id="all-markets-btn" class="action-btn secondary">
+                All Markets
+            </button>
+        </div>
+        
         <div class="content">
             <div class="loading">
                 <div class="spinner"></div>
-                <p>Fetching open events...</p>
+                <p>Analyzing markets...</p>
             </div>
             
             <div class="error" style="display: none;">
-                Failed to fetch events. Please try again.
+                <div class="error-content">
+                    <h3>Unable to fetch data</h3>
+                    <p>Please check your connection and try again.</p>
+                </div>
             </div>
             
             <div class="markets-container" style="display: none;">
+                <div class="analysis-info" style="display: none;">
+                    <div class="content-summary">
+                        <h3>Page Analysis</h3>
+                        <p class="summary-text"></p>
+                    </div>
+                </div>
+                
                 <div class="markets-header">
-                    <h2>Active Events</h2>
+                    <h2 id="markets-title">Active Events</h2>
                     <div class="markets-count">0 open events</div>
                 </div>
                 <div class="markets-list"></div>
