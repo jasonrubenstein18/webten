@@ -24,10 +24,10 @@ function extractPageContent() {
         content.keywords = metaKeywords.getAttribute('content')?.split(',').map(k => k.trim()) || [];
     }
     
-    // Enhanced text extraction with priority order
+    // Enhanced text extraction with priority order and better filtering
     const textArray = [];
     
-    // Priority 1: Main article content
+    // Priority 1: Main article content with more specific selectors
     const articleSelectors = [
         'article',
         'main',
@@ -37,30 +37,42 @@ function extractPageContent() {
         '.entry-content',
         '.content',
         '.story-body',
-        '.article-body'
+        '.article-body',
+        '.post-body',
+        '.story-content'
     ];
     
     let mainContent = null;
     for (const selector of articleSelectors) {
-        mainContent = document.querySelector(selector);
-        if (mainContent) break;
+        const candidate = document.querySelector(selector);
+        if (candidate) {
+            // Verify this is actually main content, not a sidebar or ad container
+            if (isMainContentArea(candidate)) {
+                mainContent = candidate;
+                break;
+            }
+        }
     }
     
     if (mainContent) {
-        // Extract from main content area
+        console.log('Found main content area:', mainContent.tagName, mainContent.className);
+        // Extract from main content area, but still filter out ads within it
         const contentElements = mainContent.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li');
         contentElements.forEach(element => {
-            const text = cleanText(element.textContent);
-            if (text && text.length > 15) {
-                textArray.push(text);
+            if (isContentElement(element)) {
+                const text = cleanText(element.textContent);
+                if (text && text.length > 15 && !isAdvertisementText(text)) {
+                    textArray.push(text);
+                }
             }
         });
     } else {
-        // Fallback: Extract from common content elements
+        console.log('No main content area found, using fallback extraction');
+        // Fallback: Extract from common content elements with stricter filtering
         const fallbackElements = document.querySelectorAll('p, h1, h2, h3, h4, h5, h6');
         fallbackElements.forEach(element => {
             // Skip navigation, footer, sidebar content
-            if (isContentElement(element)) {
+            if (isContentElement(element) && !isAdvertisementText(element.textContent)) {
                 const text = cleanText(element.textContent);
                 if (text && text.length > 15) {
                     textArray.push(text);
@@ -96,24 +108,100 @@ function cleanText(text) {
         .replace(/\n+/g, ' '); // Replace newlines with spaces
 }
 
+// Helper function to determine if a container is the main content area
+function isMainContentArea(element) {
+    const adKeywords = [
+        'sidebar', 'aside', 'widget', 'advertisement', 'ad-', 'ads-', 'promo',
+        'related', 'recommended', 'insights', 'sponsored', 'partner-content',
+        'commercial', 'affiliate', 'newsletter', 'subscription'
+    ];
+    
+    // Check element attributes for ad indicators
+    const elementText = (element.className + ' ' + element.id + ' ' + (element.getAttribute('data-module') || '')).toLowerCase();
+    
+    for (const keyword of adKeywords) {
+        if (elementText.includes(keyword)) {
+            return false;
+        }
+    }
+    
+    // Should have substantial content
+    const textContent = element.textContent || '';
+    if (textContent.length < 200) {
+        return false;
+    }
+    
+    return true;
+}
+
+// Helper function to detect advertisement or promotional text
+function isAdvertisementText(text) {
+    if (!text) return false;
+    
+    const adIndicators = [
+        'advertisement', 'sponsored', 'promoted', 'affiliate', 'partner content',
+        'subscribe', 'newsletter', 'get insights', 'learn more', 'find out more',
+        'click here', 'sign up', 'join now', 'register', 'download', 'try free',
+        'offer expires', 'limited time', 'special offer', 'discount',
+        'aime insights', 'related articles', 'you might also like', 'recommended for you'
+    ];
+    
+    const lowerText = text.toLowerCase();
+    
+    // Check for ad indicators
+    for (const indicator of adIndicators) {
+        if (lowerText.includes(indicator)) {
+            return true;
+        }
+    }
+    
+    // Check for promotional patterns
+    if (lowerText.match(/\b(save|get|buy|shop|order)\s+\d+%?\s*(off|discount)\b/)) {
+        return true;
+    }
+    
+    // Check for ticker symbols or financial promotional content
+    if (lowerText.match(/\b[a-z]{2,5}:\s*[a-z]+\b/) && lowerText.includes('stock')) {
+        return true;
+    }
+    
+    return false;
+}
+
 // Helper function to determine if an element contains main content
 function isContentElement(element) {
     const excludeSelectors = [
         'nav', 'header', 'footer', 'aside', 
         '.nav', '.navigation', '.menu', '.sidebar', 
-        '.header', '.footer', '.advertisement', '.ad',
-        '.comments', '.comment', '.social', '.share'
+        '.header', '.footer', '.advertisement', '.ad', '.ads',
+        '.comments', '.comment', '.social', '.share',
+        '.related', '.recommended', '.insights', '.promo',
+        '.sponsored', '.affiliate', '.newsletter', '.subscription',
+        '.widget', '.banner', '.popup', '.modal'
     ];
     
     // Check if element or its parents match exclude selectors
     let current = element;
     while (current && current !== document.body) {
+        // Check tag name
+        const tagName = current.tagName?.toLowerCase();
+        if (['aside', 'nav', 'footer', 'header'].includes(tagName)) {
+            return false;
+        }
+        
         for (const selector of excludeSelectors) {
             if (current.matches && current.matches(selector)) {
                 return false;
             }
             if (current.className && typeof current.className === 'string') {
-                if (current.className.toLowerCase().includes(selector.replace('.', ''))) {
+                const className = current.className.toLowerCase();
+                if (className.includes(selector.replace('.', ''))) {
+                    return false;
+                }
+            }
+            if (current.id && typeof current.id === 'string') {
+                const id = current.id.toLowerCase();
+                if (id.includes(selector.replace('.', ''))) {
                     return false;
                 }
             }
@@ -134,7 +222,7 @@ function analyzeContentForMarkets(content) {
         politics: ['election', 'president', 'congress', 'senate', 'politics', 'campaign', 'vote', 'democrat', 'republican'],
         crypto: ['bitcoin', 'ethereum', 'crypto', 'cryptocurrency', 'blockchain', 'defi', 'nft'],
         sports: ['nfl', 'nba', 'mlb', 'nhl', 'super bowl', 'world series', 'playoffs', 'championship'],
-        tech: ['ai', 'artificial intelligence', 'meta', 'apple', 'google', 'tesla', 'amazon', 'microsoft'],
+        tech: ['machine learning', 'automation', 'meta', 'apple', 'google', 'tesla', 'amazon', 'microsoft'],
         economy: ['inflation', 'recession', 'gdp', 'unemployment', 'fed', 'interest rates', 'stock market'],
         climate: ['climate', 'global warming', 'carbon', 'renewable energy', 'solar', 'wind', 'electric vehicle']
     };

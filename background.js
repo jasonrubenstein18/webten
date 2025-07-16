@@ -408,71 +408,81 @@ function summarizeMarketsForAI(markets) {
     });
 }
 
-// Create a concise content summary for display (150 characters max)
-function createContentSummary(title, summary) {
-    const maxLength = 150; // Shorter for better UI
-    
-    // Clean and deduplicate the title
-    const cleanTitle = (title || '').replace(/\s+/g, ' ').trim();
-    
-    // If we only have a title, clean it up and return
-    if (!summary || summary.trim().length === 0) {
-        if (cleanTitle.length <= maxLength) {
-            return cleanTitle;
-        }
-        return cleanTitle.substring(0, maxLength - 3) + '...';
-    }
-    
-    // Clean up the summary text and remove repetitive content
-    let cleanedSummary = summary
-        .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
-        .replace(/\n/g, ' ')   // Replace newlines with spaces
-        .trim();
-    
-    // Remove repetitive phrases (if the same phrase appears multiple times)
-    const words = cleanedSummary.split(' ');
-    const uniqueWords = [];
-    const seenPhrases = new Set();
-    
-    for (let i = 0; i < words.length; i++) {
-        // Check for repetitive 3-word phrases
-        if (i <= words.length - 3) {
-            const phrase = words.slice(i, i + 3).join(' ').toLowerCase();
-            if (seenPhrases.has(phrase)) {
-                // Skip repetitive content
-                continue;
-            }
-            seenPhrases.add(phrase);
-        }
-        uniqueWords.push(words[i]);
+// Generate AI-powered content summary using OpenAI
+async function generateAIContentSummary(title, summary) {
+    try {
+        console.log('Generating AI summary for content...');
         
-        // Stop if we have enough content
-        if (uniqueWords.join(' ').length > maxLength * 2) {
-            break;
+        // Prepare content for summarization
+        let contentText = `${title || ''} ${summary || ''}`.trim();
+        if (!contentText || contentText.length < 10) {
+            return title || 'Content summary not available';
         }
-    }
-    
-    cleanedSummary = uniqueWords.join(' ');
-    
-    // Create smart summary prioritizing unique information
-    if (cleanTitle && cleanedSummary.toLowerCase().includes(cleanTitle.toLowerCase())) {
-        // If summary contains the title, just use the summary
-        if (cleanedSummary.length <= maxLength) {
-            return cleanedSummary;
+        
+        // Truncate if too long to save tokens
+        if (contentText.length > 2000) {
+            contentText = contentText.substring(0, 2000) + '...';
         }
-        return cleanedSummary.substring(0, maxLength - 3) + '...';
-    } else {
-        // Combine title and summary smartly
-        if (cleanTitle.length + cleanedSummary.length + 3 <= maxLength) {
-            return cleanTitle + ' - ' + cleanedSummary;
-        } else if (cleanTitle.length < maxLength / 2) {
-            const remainingSpace = maxLength - cleanTitle.length - 3;
-            return cleanTitle + ' - ' + cleanedSummary.substring(0, remainingSpace - 3) + '...';
-        } else {
-            // Title is too long, just use a smart summary
-            const combinedText = (cleanTitle + ' ' + cleanedSummary).substring(0, maxLength - 3) + '...';
-            return combinedText;
+        
+        const prompt = `Please write a brief, clear summary of the following webpage content in 400 characters or fewer. Focus on the main topic and key points:
+
+${contentText}
+
+Summary (400 characters max):`;
+
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('AI summary timeout')), CONFIG.API_TIMEOUT);
+        });
+        
+        // Create fetch promise
+        const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 150
+            })
+        });
+        
+        // Race between fetch and timeout
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
         }
+        
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from OpenAI API');
+        }
+        
+        const aiSummary = data.choices[0].message.content.trim();
+        
+        // Ensure it's within 400 characters
+        if (aiSummary.length > 400) {
+            return aiSummary.substring(0, 397) + '...';
+        }
+        
+        return aiSummary;
+        
+    } catch (error) {
+        console.error('Error generating AI summary:', error);
+        // Fallback to a simple summary if AI fails
+        const fallback = `${title || ''} ${summary || ''}`.substring(0, 397) + '...';
+        return fallback || 'Content summary not available';
     }
 }
 
@@ -494,8 +504,8 @@ async function findRelevantMarkets(pageContent, markets, progressCallback = null
             throw new Error('Insufficient page content for analysis');
         }
         
-        // Create a concise summary for display (240 characters max)
-        const displaySummary = createContentSummary(pageContent.title, pageContent.summary);
+        // Generate AI-powered summary for display (400 characters max)
+        const displaySummary = await generateAIContentSummary(pageContent.title, pageContent.summary);
         
         // Truncate content if too long to save tokens
         if (contentText.length > 1500) {
@@ -566,7 +576,7 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                 ).join('\n');
                 
                 // Create optimized prompt for relevance analysis
-                const prompt = `Given the following webpage content and list of prediction markets, identify which markets are most relevant to the content. Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
+                const prompt = `Given the following webpage content and list of prediction markets, identify which markets are most relevant to the content. Based specifically on the content of the webpage what markets might the user be most interested in participating in? Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
 
 WEBPAGE CONTENT:
 Title: ${pageContent.title}

@@ -2,7 +2,7 @@ console.log('Market Suggestion Extension: Popup script loaded');
 
 let currentPlatform = 'kalshi';
 let marketsData = [];
-let currentMode = 'all'; // 'all' or 'relevant'
+let currentMode = 'relevant'; // 'all' or 'relevant' - default to page analysis
 
 // Cache DOM elements
 const elements = {};
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupEventListeners();
     updateActionButtonStates(); // Initialize button states
-    loadKalshiMarkets();
+    analyzeCurrentPage(); // Auto-analyze the current page on startup
 });
 
 function setupEventListeners() {
@@ -212,19 +212,56 @@ function analyzeCurrentPage() {
     
     showLoading();
     
-    // Update loading text for analysis with progress tracking
-    updateLoadingProgress('Extracting page content...');
+    // Phase 1: Start with extracting page content (random between 3-8%)
+    const initialProgress = Math.floor(Math.random() * 6) + 3;
+    updateLoadingProgress('Extracting Page Content', initialProgress, 'Reading webpage content and filtering out ads...');
     
     // Set up timeout for the entire analysis process (can take up to 2 minutes for thorough analysis)
     const analysisTimeout = setTimeout(() => {
+        clearInterval(progressInterval);
         console.error('Analysis timeout after 2 minutes');
         showError('Analysis timed out after 2 minutes. Please try again or check your internet connection.');
     }, 120000); // 2 minute timeout to match background.js ANALYSIS_TIMEOUT
     
+    // Track progress through different phases with random percentages
+    let currentPhase = 1;
+    const totalPhases = 5;
+    
+    // Generate random progress percentages within realistic ranges
+    function getRandomProgress(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    
+    // Simulate progress updates for better UX
+    const progressInterval = setInterval(() => {
+        if (currentPhase === 1) {
+            const progress = getRandomProgress(12, 18);
+            updateLoadingProgress('Fetching Active Markets', progress, 'Connecting to Kalshi API to get latest markets...');
+            currentPhase = 2;
+        } else if (currentPhase === 2) {
+            const progress = getRandomProgress(28, 38);
+            updateLoadingProgress('Processing Markets', progress, 'Found markets, preparing for analysis...');
+            currentPhase = 3;
+        } else if (currentPhase === 3) {
+            const progress = getRandomProgress(55, 65);
+            updateLoadingProgress('Analyzing Content', progress, 'Finding relevant markets for this content...');
+            currentPhase = 4;
+        } else if (currentPhase === 4) {
+            const progress = getRandomProgress(78, 88);
+            updateLoadingProgress('Generating Summary', progress, 'Creating content summary...');
+            currentPhase = 5;
+        }
+    }, 2000);
+    
     // Send message to background script to analyze page content
     chrome.runtime.sendMessage({ action: 'analyzePageContent' }, (response) => {
-        // Clear the timeout since we got a response
+        // Clear the progress interval and timeout
+        clearInterval(progressInterval);
         clearTimeout(analysisTimeout);
+        
+        // Final progress update with random percentage
+        const finalProgress = Math.floor(Math.random() * 4) + 92; // 92-95%
+        updateLoadingProgress('Finalizing Results', finalProgress, 'Preparing market suggestions...');
         
         console.log('Received analysis response:', response);
         
@@ -250,7 +287,7 @@ function analyzeCurrentPage() {
             } else if (errorMessage.includes('timeout')) {
                 errorMessage = 'Request timed out: Please try again. If the issue persists, check your internet connection.';
             } else if (errorMessage.includes('API error')) {
-                errorMessage = 'OpenAI API error: Please try again in a few moments.';
+                errorMessage = 'Analysis service error: Please try again in a few moments.';
             }
             
             showError(errorMessage);
@@ -263,14 +300,36 @@ function analyzeCurrentPage() {
             return;
         }
         
-        // Show analysis results
-        showRelevantMarkets(response.markets, response.contentSummary, response.totalAnalyzed);
+        // Complete progress
+        updateLoadingProgress('Complete!', 100, 'Analysis finished successfully.');
+        
+        // Small delay to show completion before showing results
+        setTimeout(() => {
+            showRelevantMarkets(response.markets, response.contentSummary, response.totalAnalyzed);
+        }, 500);
     });
 }
 
-function updateLoadingProgress(message) {
-    if (elements.loadingDiv.querySelector('p')) {
-        elements.loadingDiv.querySelector('p').textContent = message;
+function updateLoadingProgress(message, percentage = 0, details = '') {
+    const progressMessage = elements.loadingDiv.querySelector('.progress-message');
+    const progressPercentage = elements.loadingDiv.querySelector('.progress-percentage');
+    const progressFill = elements.loadingDiv.querySelector('.progress-fill');
+    const progressDetails = elements.loadingDiv.querySelector('.progress-details');
+    
+    if (progressMessage) {
+        progressMessage.textContent = message;
+    }
+    
+    if (progressPercentage) {
+        progressPercentage.textContent = `${Math.round(percentage)}%`;
+    }
+    
+    if (progressFill) {
+        progressFill.style.width = `${percentage}%`;
+    }
+    
+    if (progressDetails && details) {
+        progressDetails.textContent = details;
     }
 }
 
@@ -347,7 +406,6 @@ function createRelevantMarketElement(market) {
         <div class="market-header">
             <div class="market-title">
                 ${escapeHtml(market.title)}
-                <span class="relevance-score">${market.relevanceScore}%</span>
             </div>
             <div class="market-status open">OPEN</div>
         </div>
