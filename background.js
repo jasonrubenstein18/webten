@@ -9,6 +9,10 @@ const KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
 const OPENAI_API_KEY = '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';
 const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
+// Grok API configuration (xAI)
+const GROK_API_KEY = 'xai-237BhLIsoTsrbfY5uIvewcQe3Fg9bu0qRAhpxng39z1CaMCm6wmZ34naoZqvKrNsSjcxHPYxzc4IL53i';
+const GROK_BASE_URL = 'https://api.x.ai/v1';
+
 // Configuration
 const CONFIG = {
     MAX_PAGES: 20,        // Fetch up to 20 pages (4000 markets max)
@@ -24,7 +28,13 @@ const CONFIG = {
     MAX_STORAGE_SIZE: 5 * 1024 * 1024, // 5MB storage limit
     MAX_RETRY_ATTEMPTS: 3,
     RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
-    MIN_RELEVANCE_SCORE: 40 // Minimum relevance score for markets to be returned
+    MIN_RELEVANCE_SCORE: 40, // Minimum relevance score for markets to be returned
+    // Grok edge analysis settings
+    EDGE_ANALYSIS_ENABLED: true, // Enable edge analysis by default
+    EDGE_CACHE_EXPIRY: 15 * 60 * 1000, // 15 minutes cache for edge analysis
+    MIN_EDGE_CONFIDENCE: 20, // Minimum confidence score for edge detection
+    GROK_MODEL: 'grok-3-latest', // Grok model to use for edge analysis
+    GROK_TIMEOUT: 45000 // 45 second timeout for Grok API calls
 };
 
 // Fetch events from Kalshi API with pagination support
@@ -210,6 +220,480 @@ function cosineSimilarity(a, b) {
     }
     
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+// Group markets by event/series for multi-participant analysis
+function groupMarketsByEvent(markets) {
+    const groups = {};
+    
+    markets.forEach(market => {
+        const eventKey = market.series_ticker || market.ticker.split('-')[0];
+        if (!groups[eventKey]) {
+            groups[eventKey] = [];
+        }
+        groups[eventKey].push(market);
+    });
+    
+    // Identify multi-participant events
+    const multiParticipantGroups = [];
+    const singleMarkets = [];
+    
+    Object.entries(groups).forEach(([eventKey, eventMarkets]) => {
+        if (eventMarkets.length > 1) {
+            // This is likely a multi-participant event
+            multiParticipantGroups.push({
+                eventKey,
+                eventTitle: eventMarkets[0].title.split(' - ')[0] || eventMarkets[0].title, // Extract base event title
+                markets: eventMarkets,
+                isMultiParticipant: true
+            });
+        } else {
+            // Single binary market
+            singleMarkets.push({
+                ...eventMarkets[0],
+                isMultiParticipant: false
+            });
+        }
+    });
+    
+    return {
+        multiParticipantGroups,
+        singleMarkets
+    };
+}
+
+// Enhanced market data fetching from Kalshi API
+async function fetchDetailedMarketData(markets) {
+    console.log(`Fetching detailed data for ${markets.length} markets...`);
+    
+    const enhancedMarkets = [];
+    
+    // Process markets in batches to avoid overwhelming the API
+    const batchSize = 5;
+    for (let i = 0; i < markets.length; i += batchSize) {
+        const batch = markets.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (market) => {
+            try {
+                // Fetch detailed market data including pricing
+                const marketPath = `/trade-api/v2/events/${market.ticker}`;
+                
+                const response = await fetch(`${BASE}${marketPath}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.warn(`Failed to fetch details for ${market.ticker}: ${response.status}`);
+                    return { ...market, detailedDataAvailable: false };
+                }
+                
+                const data = await response.json();
+                
+                // Extract relevant pricing and market data
+                const eventData = data.event || {};
+                const marketData = eventData.markets?.[0] || {};
+                
+                // Extract participant name from market title if it's a multi-participant market
+                const participantName = extractParticipantName(market.title);
+                
+                return {
+                    ...market,
+                    detailedDataAvailable: true,
+                    participantName: participantName,
+                    currentPrice: marketData.yes_bid || null,
+                    volume: marketData.volume || 0,
+                    open_interest: marketData.open_interest || 0,
+                    last_price: marketData.last_price || null,
+                    expiration_time: eventData.expected_resolve_time || null,
+                    can_close_early: eventData.can_close_early || false,
+                    trading_active: marketData.status === 'open',
+                    yes_bid: marketData.yes_bid || null,
+                    yes_ask: marketData.yes_ask || null,
+                    no_bid: marketData.no_bid || null,
+                    no_ask: marketData.no_ask || null
+                };
+                
+            } catch (error) {
+                console.error(`Error fetching detailed data for ${market.ticker}:`, error);
+                return { ...market, detailedDataAvailable: false };
+            }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        enhancedMarkets.push(...batchResults);
+        
+        // Small delay between batches
+        if (i + batchSize < markets.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+    }
+    
+    console.log(`Enhanced market data fetching completed for ${enhancedMarkets.length} markets`);
+    return enhancedMarkets;
+}
+
+// Extract participant name from market title
+function extractParticipantName(title) {
+    // Common patterns for participant names in titles
+    // e.g., "Who will Trump nominate as Fed Chair? - Kevin Hassett"
+    // e.g., "Kevin Hassett to be nominated as Fed Chair?"
+    
+    if (title.includes(' - ')) {
+        return title.split(' - ')[1]?.trim();
+    }
+    
+    // Look for patterns like "Name to be" or "Will Name"
+    const namePatterns = [
+        /^(\w+\s+\w+)\s+to\s+be/i,  // "Kevin Hassett to be"
+        /Will\s+(\w+\s+\w+)/i,      // "Will Kevin Hassett"
+        /^(\w+\s+\w+)\s+will/i      // "Kevin Hassett will"
+    ];
+    
+    for (const pattern of namePatterns) {
+        const match = title.match(pattern);
+        if (match) {
+            return match[1];
+        }
+    }
+    
+    return null;
+}
+
+// Grok API call for edge analysis with retry logic
+async function callGrokAPI(prompt, retryAttempt = 0) {
+    try {
+        console.log(`Calling Grok API for edge analysis (attempt ${retryAttempt + 1})...`);
+        
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Grok API request timeout')), CONFIG.GROK_TIMEOUT);
+        });
+        
+        // Create fetch promise
+        const fetchPromise = fetch(`${GROK_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROK_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: CONFIG.GROK_MODEL,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a financial analysis expert specializing in prediction markets and betting odds. You have access to real-time information and can identify potential mispricings or edges in betting markets based on current events, news, and market dynamics.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 2000
+            })
+        });
+        
+        // Race between fetch and timeout
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from Grok API');
+        }
+        
+        return data.choices[0].message.content.trim();
+        
+    } catch (error) {
+        console.error(`Error calling Grok API (attempt ${retryAttempt + 1}):`, error.message);
+        
+        // Retry logic for retryable errors
+        if (retryAttempt < CONFIG.MAX_RETRY_ATTEMPTS - 1) {
+            const isRetryable = error.message.includes('timeout') || 
+                              error.message.includes('Failed to fetch') ||
+                              error.message.includes('NetworkError') ||
+                              error.message.includes('429') || // Rate limit
+                              error.message.includes('500') || // Server error
+                              error.message.includes('502') || // Bad gateway
+                              error.message.includes('503');   // Service unavailable
+            
+            if (isRetryable) {
+                const delay = getRetryDelay(retryAttempt);
+                console.log(`Retrying Grok API call in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return callGrokAPI(prompt, retryAttempt + 1);
+            }
+        }
+        
+        // If all retries failed or error is not retryable, throw the error
+        throw error;
+    }
+}
+
+// Build edge analysis prompt for Grok
+function buildEdgeAnalysisPrompt(enhancedMarkets, pageContent) {
+    const contentSummary = `${pageContent.title || ''} ${pageContent.summary || ''}`.substring(0, 1000);
+    
+    // Group markets by event for multi-participant analysis
+    const marketGroups = groupMarketsByEvent(enhancedMarkets);
+    
+    let marketsInfo = '';
+    
+    // Add multi-participant event groups
+    marketGroups.multiParticipantGroups.forEach(group => {
+        marketsInfo += `\nMULTI-PARTICIPANT EVENT: ${group.eventTitle}\n`;
+        marketsInfo += `Event Key: ${group.eventKey}\n`;
+        marketsInfo += `Participants:\n`;
+        
+        group.markets.forEach(market => {
+            const pricingInfo = (market.yes_bid !== null && market.yes_bid !== undefined) ? 
+                `Yes ${market.yes_bid}¢ (bid) / ${market.yes_ask || 'N/A'}¢ (ask), Volume: ${market.volume || 0}` :
+                'Pricing data pending';
+                
+            const participant = market.participantName || extractParticipantFromTicker(market.ticker) || 'Unknown';
+            
+            marketsInfo += `  - ${participant} (${market.ticker}): ${pricingInfo}\n`;
+        });
+        marketsInfo += `Expiration: ${group.markets[0].expiration_time || 'Not specified'}\n`;
+        marketsInfo += `Trading Active: ${group.markets[0].trading_active ? 'Yes' : 'No'}\n`;
+        marketsInfo += '---\n';
+    });
+    
+    // Add single binary markets
+    marketGroups.singleMarkets.forEach(market => {
+        const pricingInfo = (market.yes_bid !== null && market.yes_bid !== undefined) ? 
+            `Current prices: Yes ${market.yes_bid}¢ (bid) / ${market.yes_ask || 'N/A'}¢ (ask), Volume: ${market.volume || 0}, Last price: ${market.last_price || 'N/A'}¢` :
+            'Live pricing data will be available when trading';
+            
+        marketsInfo += `\nBINARY MARKET: ${market.ticker}\n`;
+        marketsInfo += `Title: ${market.title}\n`;
+        marketsInfo += `Category: ${market.category}\n`;
+        marketsInfo += `${pricingInfo}\n`;
+        marketsInfo += `Expiration: ${market.expiration_time || 'Not specified'}\n`;
+        marketsInfo += `Trading Active: ${market.trading_active ? 'Yes' : 'No'}\n`;
+        marketsInfo += '---\n';
+    });
+    
+    return `Based on the following webpage content and prediction markets, analyze each market for potential betting edges or mispricings using your real-time knowledge of current events, news, and market dynamics.
+
+WEBPAGE CONTENT (Context):
+${contentSummary}
+
+PREDICTION MARKETS TO ANALYZE:
+${marketsInfo}
+
+IMPORTANT INSTRUCTIONS:
+- For MULTI-PARTICIPANT EVENTS: Analyze all participants together and recommend which specific participant offers the best value. Set the recommendation to the ticker of the participant you recommend betting YES on.
+- For BINARY MARKETS: Recommend "buy_yes", "buy_no", or "avoid".
+- Consider current real-time events, news, and developments that might affect outcomes
+- Assess whether current market pricing accurately reflects true probabilities
+- Look for information asymmetries or market inefficiencies
+- Consider volume, liquidity, and time until resolution
+
+Please do deep research and present precise odds on each bet. Use advanced math for trading. 
+Draw research from authoritative sources like research and unbiased pundits. 
+Size my bets properly and use everything you know about portfolio theory. 
+Calculate your implied odds from first principles and make sure you get an exact number. 
+
+For confidence please imagine you have $100 to bet. Would you bet on this market/participant, and how much? 
+If you would bet $80 that means you have an 80% confidence in your edge. If you would not bet, that means you have a 0% confidence.
+
+Return ONLY a JSON array with your analysis in this exact format:
+
+For multi-participant events, return one analysis object for the event (not per participant):
+[
+  {
+    "eventKey": "EVENT_KEY_FOR_MULTI_PARTICIPANT_EVENTS",
+    "ticker": "RECOMMENDED_PARTICIPANT_TICKER" | "BINARY_MARKET_TICKER",
+    "hasEdge": true/false,
+    "edgeType": "underpriced" | "overpriced" | "none",
+    "confidence": 0-100,
+    "reasoning": "Brief 1-2 sentence explanation focusing on why this participant/option is best",
+    "recommendation": "PARTICIPANT_TICKER" | "buy_yes" | "buy_no" | "avoid" | "insufficient_data",
+    "participantName": "Name of recommended participant" | null,
+    "isMultiParticipant": true | false,
+    "timeframe": "immediate" | "short_term" | "long_term"
+  }
+]
+
+Only include markets/events where you have sufficient information to make an assessment. For multi-participant events, only return ONE recommendation for the best participant.`;
+}
+
+// Extract participant name from ticker if not found in title
+function extractParticipantFromTicker(ticker) {
+    // Common patterns in tickers like "FEDCHAIR-HASSETT" or "PRES2024-BIDEN"
+    const parts = ticker.split('-');
+    if (parts.length > 1) {
+        return parts[parts.length - 1].replace(/([A-Z])/g, ' $1').trim();
+    }
+    return null;
+}
+
+// Analyze markets for edges using Grok
+async function analyzeMarketEdges(relevantMarkets, pageContent, progressCallback = null) {
+    if (!CONFIG.EDGE_ANALYSIS_ENABLED || !relevantMarkets || relevantMarkets.length === 0) {
+        console.log('Edge analysis disabled or no markets to analyze');
+        return relevantMarkets.map(market => ({ ...market, edgeAnalysis: null }));
+    }
+    
+    try {
+        console.log(`Starting edge analysis for ${relevantMarkets.length} markets...`);
+        
+        // Report progress: Starting edge analysis
+        if (progressCallback) {
+            progressCallback({
+                phase: 'edge_analysis',
+                current: 1,
+                total: 4,
+                message: 'Starting edge analysis...'
+            });
+        }
+        
+        // Check cache first
+        const cacheKey = `edgeAnalysis_${Date.now()}`;
+        
+        // Fetch detailed market data
+        if (progressCallback) {
+            progressCallback({
+                phase: 'edge_analysis',
+                current: 2,
+                total: 4,
+                message: 'Fetching detailed market data...'
+            });
+        }
+        const enhancedMarkets = await fetchDetailedMarketData(relevantMarkets);
+        
+        // Build prompt for Grok analysis
+        if (progressCallback) {
+            progressCallback({
+                phase: 'edge_analysis',
+                current: 3,
+                total: 4,
+                message: 'Analyzing market inefficiencies...'
+            });
+        }
+        const prompt = buildEdgeAnalysisPrompt(enhancedMarkets, pageContent);
+        
+        // Call Grok API for edge analysis
+        const grokResponse = await callGrokAPI(prompt);
+        
+        // Parse Grok response
+        let edgeAnalyses;
+        try {
+            edgeAnalyses = JSON.parse(grokResponse);
+        } catch (parseError) {
+            console.error('Failed to parse Grok response:', parseError);
+            // Try to extract JSON from response if it's wrapped in text
+            const jsonMatch = grokResponse.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                edgeAnalyses = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('Could not parse Grok analysis response');
+            }
+        }
+        
+        if (!Array.isArray(edgeAnalyses)) {
+            throw new Error('Grok response is not an array');
+        }
+        
+        // Attach edge analysis to markets, handling both multi-participant and binary markets
+        const marketsWithEdges = enhancedMarkets.map(market => {
+            // First try direct ticker match (for binary markets)
+            let edgeData = edgeAnalyses.find(analysis => analysis.ticker === market.ticker);
+            
+            // If not found, check if this market is part of a multi-participant event
+            if (!edgeData) {
+                const eventKey = market.series_ticker || market.ticker.split('-')[0];
+                edgeData = edgeAnalyses.find(analysis => 
+                    analysis.eventKey === eventKey && 
+                    analysis.isMultiParticipant === true
+                );
+            }
+            
+            if (!edgeData) {
+                return {
+                    ...market,
+                    edgeAnalysis: null
+                };
+            }
+            
+            // For multi-participant events, determine if this specific market is the recommended one
+            let isRecommendedParticipant = false;
+            let marketSpecificRecommendation = edgeData.recommendation;
+            
+            if (edgeData.isMultiParticipant) {
+                isRecommendedParticipant = (edgeData.recommendation === market.ticker);
+                // For non-recommended participants in multi-participant events
+                if (!isRecommendedParticipant) {
+                    marketSpecificRecommendation = 'avoid';
+                } else {
+                    marketSpecificRecommendation = 'buy_yes'; // The recommended participant should be bought YES
+                }
+            }
+            
+            return {
+                ...market,
+                edgeAnalysis: {
+                    hasEdge: edgeData.hasEdge && edgeData.confidence >= CONFIG.MIN_EDGE_CONFIDENCE,
+                    edgeType: edgeData.edgeType,
+                    confidence: edgeData.confidence,
+                    reasoning: edgeData.reasoning,
+                    recommendation: marketSpecificRecommendation,
+                    timeframe: edgeData.timeframe,
+                    isMultiParticipant: edgeData.isMultiParticipant || false,
+                    isRecommendedParticipant: isRecommendedParticipant,
+                    eventKey: edgeData.eventKey,
+                    recommendedParticipant: edgeData.participantName,
+                    analyzedAt: Date.now()
+                }
+            };
+        });
+        
+        // Filter out non-recommended participants from multi-participant events
+        const filteredMarkets = marketsWithEdges.filter(market => {
+            // Always include binary markets
+            if (!market.edgeAnalysis?.isMultiParticipant) {
+                return true;
+            }
+            
+            // For multi-participant events, only include the recommended participant
+            return market.edgeAnalysis?.isRecommendedParticipant === true;
+        });
+        
+        console.log(`Edge analysis completed. Found ${marketsWithEdges.filter(m => m.edgeAnalysis?.hasEdge).length} markets with potential edges.`);
+        console.log(`Filtered to ${filteredMarkets.length} markets (removed non-recommended participants from multi-participant events).`);
+        
+        // Report progress: Edge analysis complete
+        if (progressCallback) {
+            progressCallback({
+                phase: 'edge_analysis',
+                current: 4,
+                total: 4,
+                message: 'Edge analysis complete!'
+            });
+        }
+        
+        return filteredMarkets;
+        
+    } catch (error) {
+        console.error('Error in edge analysis:', error);
+        // Return markets without edge analysis if Grok fails
+        return relevantMarkets.map(market => ({ 
+            ...market, 
+            edgeAnalysis: { 
+                error: error.message,
+                analyzedAt: Date.now()
+            } 
+        }));
+    }
 }
 
 // Storage management utilities
@@ -844,7 +1328,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         marketsResult.markets
                     );
                     
-                    sendResponse(relevantResult);
+                    if (!relevantResult.success) {
+                        sendResponse(relevantResult);
+                        return;
+                    }
+                    
+                    // Analyze relevant markets for potential edges using Grok
+                    let marketsWithEdges = [];
+                    if (relevantResult.markets && relevantResult.markets.length > 0) {
+                        console.log('Starting edge analysis with Grok...');
+                        try {
+                            marketsWithEdges = await analyzeMarketEdges(
+                                relevantResult.markets, 
+                                contentResponse.content
+                            );
+                        } catch (edgeError) {
+                            console.error('Edge analysis failed, continuing without edge data:', edgeError);
+                            // Continue with original markets if edge analysis fails
+                            marketsWithEdges = relevantResult.markets.map(market => ({ 
+                                ...market, 
+                                edgeAnalysis: { 
+                                    error: 'Edge analysis unavailable',
+                                    analyzedAt: Date.now()
+                                } 
+                            }));
+                        }
+                    } else {
+                        marketsWithEdges = relevantResult.markets;
+                    }
+                    
+                    // Send response with edge analysis included
+                    sendResponse({
+                        ...relevantResult,
+                        markets: marketsWithEdges,
+                        edgeAnalysisPerformed: marketsWithEdges.some(m => m.edgeAnalysis && !m.edgeAnalysis.error)
+                    });
                     
                 } catch (error) {
                     console.error('Error in analyzePageContent:', error);

@@ -644,3 +644,307 @@ header h1 {
 .content::-webkit-scrollbar-thumb:hover {
     background: #a1a1a6;
 }
+
+/* Edge Analysis Styles */
+.edge-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    letter-spacing: 0.3px;
+    animation: pulse-glow 2s infinite;
+}
+
+.edge-indicator.confidence-high {
+    background: linear-gradient(135deg, #ff3b30 0%, #ff6347 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+}
+
+.edge-indicator.confidence-medium {
+    background: linear-gradient(135deg, #ff9500 0%, #ffb347 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(255, 149, 0, 0.3);
+}
+
+.edge-indicator.confidence-low {
+    background: linear-gradient(135deg, #34c759 0%, #5ac777 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+}
+
+.edge-indicator.recommended {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8f00 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(255, 107, 0, 0.4);
+    animation: pulse-glow-orange 2s infinite;
+}
+
+.edge-indicator.multi-participant {
+    background: linear-gradient(135deg, #5856d6 0%, #7b79ff 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(88, 86, 214, 0.3);
+}
+
+@keyframes pulse-glow-orange {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(255, 107, 0, 0.4);
+    }
+    50% {
+        box-shadow: 0 4px 16px rgba(255, 107, 0, 0.6);
+    }
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 16px rgba(255, 59, 48, 0.5);
+    }
+}
+
+/* Market card enhancements for edge detection */
+.market-item.has-edge {
+    border-color: #ff3b30;
+    background: linear-gradient(135deg, #fff0f0 0%, #ffe6e6 100%);
+    position: relative;
+    overflow: visible;
+}
+
+.market-item.has-edge::before {
+    background: linear-gradient(135deg, #ff3b30 0%, #ff6347 100%);
+    opacity: 1;
+    width: 4px;
+}
+
+.market-item.has-edge:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(255, 59, 48, 0.15);
+}
+
+/* Pricing Information */
+.pricing-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: #f5f5f7;
+    border-radius: 6px;
+    font-size: 12px;
+    border: 1px solid #e5e5ea;
+}
+
+.price-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.price-label {
+    color: #86868b;
+    font-weight: 500;
+}
+
+.price-bid {
+    color: #34c759;
+    font-weight: 600;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.price-separator {
+    color: #86868b;
+}
+
+.price-ask {
+    color: #ff3b30;
+    font-weight: 600;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.volume-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.volume-label {
+    color: #86868b;
+    font-weight: 500;
+}
+
+.volume-value {
+    color: #1d1d1f;
+    font-weight: 600;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+/* Edge Analysis Section */
+.edge-analysis {
+    margin: 12px 0 8px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e5ea;
+    background: #f5f5f7;
+}
+
+.edge-analysis.error {
+    background: #fff5f5;
+    border-color: #ffcccc;
+}
+
+.edge-analysis.no-edge {
+    background: #f0f7ff;
+    border-color: #cce7ff;
+}
+
+.edge-analysis.has-edge {
+    background: linear-gradient(135deg, #fff0f0 0%, #ffe6e6 100%);
+    border-color: #ff9999;
+    border-width: 2px;
+}
+
+.edge-status {
+    font-size: 12px;
+    color: #86868b;
+    font-weight: 500;
+    text-align: center;
+}
+
+.edge-summary {
+    margin-bottom: 8px;
+}
+
+.edge-recommendation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rec-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d1d1f;
+    text-align: center;
+}
+
+.confidence-badge {
+    background: #007aff;
+    color: #ffffff;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 35px;
+    text-align: center;
+}
+
+.edge-details {
+    border-top: 1px solid #e5e5ea;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+.edge-reasoning {
+    font-size: 12px;
+    color: #515154;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    font-style: italic;
+}
+
+.edge-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #86868b;
+}
+
+.timeframe {
+    background: #e5e5ea;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.analyzed-time {
+    font-weight: 400;
+}
+
+/* Multi-participant market styles */
+.multi-participant-note {
+    font-size: 11px;
+    color: #5856d6;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    margin-top: 4px;
+}
+
+.recommended-participant {
+    font-size: 12px;
+    color: #ff6b00;
+    font-weight: 600;
+    margin: 6px 0;
+    padding: 4px 8px;
+    background: rgba(255, 107, 0, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 107, 0, 0.2);
+    text-align: center;
+}
+
+.confidence {
+    background: #5856d6;
+    color: #ffffff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 10px;
+}
+
+/* Enhanced progress indicators for edge analysis */
+.progress-details {
+    font-size: 12px;
+    color: #86868b;
+    text-align: center;
+    line-height: 1.4;
+    min-height: 17px;
+}
+
+.progress-details.edge-analysis {
+    color: #ff3b30;
+    font-weight: 500;
+}
+
+/* Market list sorting improvements */
+.markets-list .market-item.has-edge {
+    order: -1; /* Move edge markets to the top */
+}
+
+/* Responsive edge indicators */
+@media (max-width: 380px) {
+    .edge-indicator {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+    
+    .pricing-info {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+    
+    .edge-recommendation {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+}

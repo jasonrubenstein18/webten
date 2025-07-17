@@ -119,7 +119,7 @@ function createMarketElement(market) {
             <button class="btn btn-secondary copy-btn" data-ticker="${escapeHtml(market.ticker)}">
                 Copy Ticker
             </button>
-            <span class="click-hint">Click to view event ↗</span>
+            <span class="click-hint">Click to view event</span>
         </div>
     `;
     
@@ -223,7 +223,7 @@ function analyzeCurrentPage() {
     
     // Track progress through different phases with random percentages
     let currentPhase = 1;
-    const totalPhases = 5;
+    const totalPhases = 6; // Updated to include edge calculation phase
     
     // Generate random progress percentages within realistic ranges
     function getRandomProgress(min, max) {
@@ -245,9 +245,13 @@ function analyzeCurrentPage() {
             updateLoadingProgress('Analyzing Content', progress, 'Finding relevant markets for this content...');
             currentPhase = 4;
         } else if (currentPhase === 4) {
-            const progress = getRandomProgress(78, 88);
+            const progress = getRandomProgress(70, 80);
             updateLoadingProgress('Generating Summary', progress, 'Creating content summary...');
             currentPhase = 5;
+        } else if (currentPhase === 5) {
+            const progress = getRandomProgress(85, 92);
+            updateLoadingProgress('Calculating Edge', progress, 'Analyzing betting opportunities and market inefficiencies...');
+            currentPhase = 6;
         }
     }, 2000);
     
@@ -258,7 +262,7 @@ function analyzeCurrentPage() {
         clearTimeout(analysisTimeout);
         
         // Final progress update with random percentage
-        const finalProgress = Math.floor(Math.random() * 4) + 92; // 92-95%
+        const finalProgress = Math.floor(Math.random() * 4) + 96; // 96-99%
         updateLoadingProgress('Finalizing Results', finalProgress, 'Preparing market suggestions...');
         
         console.log('Received analysis response:', response);
@@ -303,7 +307,12 @@ function analyzeCurrentPage() {
         
         // Small delay to show completion before showing results
         setTimeout(() => {
-            showRelevantMarkets(response.markets, response.contentSummary, response.totalAnalyzed);
+            showRelevantMarkets(
+                response.markets, 
+                response.contentSummary, 
+                response.totalAnalyzed,
+                response.edgeAnalysisPerformed || false
+            );
         }, 500);
     });
 }
@@ -333,8 +342,11 @@ function updateLoadingProgress(message, percentage = 0, details = '') {
 
 
 
-function showRelevantMarkets(markets, contentSummary, totalAnalyzed) {
+function showRelevantMarkets(markets, contentSummary, totalAnalyzed, edgeAnalysisPerformed = false) {
     console.log(`Showing ${markets.length} relevant markets out of ${totalAnalyzed} analyzed`);
+    
+    // Count markets with edges
+    const marketsWithEdges = markets.filter(m => m.edgeAnalysis?.hasEdge).length;
     
     // Show analysis info
     if (contentSummary && elements.summaryText) {
@@ -342,18 +354,28 @@ function showRelevantMarkets(markets, contentSummary, totalAnalyzed) {
         elements.analysisInfo.style.display = 'block';
     }
     
-    // Update title
-    elements.marketsTitle.textContent = 'Relevant Markets';
+    // Update title with edge info
+    if (edgeAnalysisPerformed && marketsWithEdges > 0) {
+        elements.marketsTitle.textContent = `Relevant Markets (${marketsWithEdges} edges detected)`;
+    } else {
+        elements.marketsTitle.textContent = 'Relevant Markets';
+    }
     
     // Show markets
     elements.loadingDiv.style.display = 'none';
     elements.errorDiv.style.display = 'none';
     elements.marketsContainer.style.display = 'block';
     
-    // Update count with relevance info
-    elements.marketsCount.textContent = markets.length > 0 
+    // Update count with relevance and edge info
+    let countText = markets.length > 0 
         ? `${markets.length} relevant markets (from ${totalAnalyzed} analyzed)`
         : 'No relevant markets found';
+    
+    if (edgeAnalysisPerformed) {
+        countText += ` • ${marketsWithEdges} edges detected`;
+    }
+    
+    elements.marketsCount.textContent = countText;
     
     // Clear and populate markets list
     elements.marketsList.innerHTML = '';
@@ -367,7 +389,19 @@ function showRelevantMarkets(markets, contentSummary, totalAnalyzed) {
         return;
     }
     
-    markets.forEach(market => {
+    // Sort markets by edge confidence first, then relevance
+    const sortedMarkets = [...markets].sort((a, b) => {
+        // First priority: markets with edges (higher confidence first)
+        if (a.edgeAnalysis?.hasEdge && !b.edgeAnalysis?.hasEdge) return -1;
+        if (!a.edgeAnalysis?.hasEdge && b.edgeAnalysis?.hasEdge) return 1;
+        if (a.edgeAnalysis?.hasEdge && b.edgeAnalysis?.hasEdge) {
+            return (b.edgeAnalysis.confidence || 0) - (a.edgeAnalysis.confidence || 0);
+        }
+        // Second priority: relevance score
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+    });
+    
+    sortedMarkets.forEach(market => {
         const marketElement = createRelevantMarketElement(market);
         elements.marketsList.appendChild(marketElement);
     });
@@ -375,16 +409,37 @@ function showRelevantMarkets(markets, contentSummary, totalAnalyzed) {
 
 function createRelevantMarketElement(market) {
     const marketDiv = document.createElement('div');
-    marketDiv.className = 'market-item clickable relevant';
+    let marketClasses = 'market-item clickable relevant';
+    
+    // Add edge classes if edge analysis is available
+    if (market.edgeAnalysis?.hasEdge) {
+        marketClasses += ' has-edge';
+        if (market.edgeAnalysis.confidence >= 70) {
+            marketClasses += ' high-confidence';
+        } else if (market.edgeAnalysis.confidence >= 50) {
+            marketClasses += ' medium-confidence';
+        } else {
+            marketClasses += ' low-confidence';
+        }
+    }
+    
+    marketDiv.className = marketClasses;
     
     // Construct Kalshi market URL
     const baseUrl = 'https://kalshi.com/events/';
     const marketUrl = `${baseUrl}${market.series_ticker || market.ticker}`;
     
+    // Create edge indicator HTML
+    const edgeIndicatorHtml = createEdgeIndicatorHtml(market.edgeAnalysis);
+    
+    // Create pricing info HTML if available
+    const pricingInfoHtml = createPricingInfoHtml(market);
+    
     marketDiv.innerHTML = `
         <div class="market-header">
             <div class="market-title">
                 ${escapeHtml(market.title)}
+                ${edgeIndicatorHtml}
             </div>
             <div class="market-status open">OPEN</div>
         </div>
@@ -392,18 +447,20 @@ function createRelevantMarketElement(market) {
             <div class="market-ticker">${escapeHtml(market.ticker)}</div>
             <div class="market-category">${escapeHtml(market.category)}</div>
         </div>
+        ${pricingInfoHtml}
+        ${createEdgeAnalysisHtml(market.edgeAnalysis)}
         <div class="market-actions">
             <button class="btn btn-secondary copy-btn" data-ticker="${escapeHtml(market.ticker)}">
                 Copy Ticker
             </button>
-            <span class="click-hint">Click to view event ↗</span>
+            <span class="click-hint">Click to view event</span>
         </div>
     `;
     
     // Make the entire card clickable (except for the copy button)
     marketDiv.addEventListener('click', (e) => {
-        // Don't trigger if clicking the copy button
-        if (e.target.closest('.copy-btn')) {
+        // Don't trigger if clicking the copy button or edge details
+        if (e.target.closest('.copy-btn') || e.target.closest('.edge-details')) {
             return;
         }
         
@@ -433,6 +490,148 @@ function createRelevantMarketElement(market) {
     });
     
     return marketDiv;
+}
+
+// Create edge indicator badge HTML
+function createEdgeIndicatorHtml(edgeAnalysis) {
+    if (!edgeAnalysis) {
+        return '';
+    }
+    
+    // Show indicator for multi-participant markets (only recommended ones are shown)
+    if (edgeAnalysis.isMultiParticipant && edgeAnalysis.hasEdge) {
+        return `<span class="edge-indicator recommended" title="Recommended participant (${edgeAnalysis.confidence}% confidence)">PICK</span>`;
+    }
+    
+    // Standard binary market edge indicator
+    if (!edgeAnalysis.hasEdge) {
+        return '';
+    }
+    
+    const edgeTypeText = edgeAnalysis.edgeType === 'underpriced' ? 'Edge' : 
+                        edgeAnalysis.edgeType === 'overpriced' ? 'Edge' : 'Edge';
+    
+    const confidenceClass = edgeAnalysis.confidence >= 70 ? 'high' : 
+                           edgeAnalysis.confidence >= 50 ? 'medium' : 'low';
+    
+    return `<span class="edge-indicator confidence-${confidenceClass}" title="Confidence: ${edgeAnalysis.confidence}%">${edgeTypeText}</span>`;
+}
+
+// Create pricing info HTML if available
+function createPricingInfoHtml(market) {
+    if (!market.detailedDataAvailable || !market.yes_bid) {
+        return '';
+    }
+    
+    return `
+        <div class="pricing-info">
+            <div class="price-display">
+                <span class="price-label">Yes:</span>
+                <span class="price-bid">${market.yes_bid}¢</span>
+                <span class="price-separator">/</span>
+                <span class="price-ask">${market.yes_ask || 'N/A'}¢</span>
+            </div>
+            <div class="volume-info">
+                <span class="volume-label">Vol:</span>
+                <span class="volume-value">${formatVolume(market.volume || 0)}</span>
+            </div>
+        </div>
+    `;
+}
+
+// Create detailed edge analysis HTML
+function createEdgeAnalysisHtml(edgeAnalysis) {
+    if (!edgeAnalysis) {
+        return '';
+    }
+    
+    if (edgeAnalysis.error) {
+        return `
+            <div class="edge-analysis error">
+                <div class="edge-status">Edge analysis unavailable</div>
+            </div>
+        `;
+    }
+    
+    if (!edgeAnalysis.hasEdge) {
+        return `
+            <div class="edge-analysis no-edge">
+                <div class="edge-status">No significant edge detected</div>
+            </div>
+        `;
+    }
+    
+    // Handle multi-participant vs binary market recommendations
+    let recommendationIcon = '';
+    let recommendationText = '';
+    
+    if (edgeAnalysis.isMultiParticipant) {
+        // Since we only show recommended participants, this is always the recommended one
+        recommendationIcon = '';
+        recommendationText = 'Recommended participant - Buy YES';
+    } else {
+        // Standard binary market recommendations
+        const binaryRecommendations = {
+            'buy_yes': { icon: '', text: 'Consider buying YES' },
+            'buy_no': { icon: '', text: 'Consider buying NO' },
+            'avoid': { icon: '', text: 'Avoid this market' },
+            'insufficient_data': { icon: '', text: 'Insufficient data' }
+        };
+        
+        const rec = binaryRecommendations[edgeAnalysis.recommendation] || { icon: '', text: 'See analysis' };
+        recommendationIcon = rec.icon;
+        recommendationText = rec.text;
+    }
+    
+    return `
+        <div class="edge-analysis has-edge">
+            <div class="edge-summary">
+                <div class="edge-recommendation">
+                    <span class="rec-text">${recommendationText}</span>
+                </div>
+                ${edgeAnalysis.isMultiParticipant ? 
+                    `<div class="multi-participant-note">Multi-participant event</div>` : 
+                    ''}
+            </div>
+            <div class="edge-details">
+                <div class="edge-reasoning">${escapeHtml(edgeAnalysis.reasoning)}</div>
+                ${edgeAnalysis.isMultiParticipant && edgeAnalysis.recommendedParticipant ? 
+                    `<div class="recommended-participant">Best option: ${edgeAnalysis.recommendedParticipant}</div>` : 
+                    ''}
+                <div class="edge-meta">
+                    <span class="confidence">Confidence: ${edgeAnalysis.confidence}%</span>
+                    <span class="timeframe">${edgeAnalysis.timeframe}</span>
+                    <span class="analyzed-time">Analyzed ${getTimeAgo(edgeAnalysis.analyzedAt)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Helper function to format volume
+function formatVolume(volume) {
+    if (volume >= 1000000) {
+        return (volume / 1000000).toFixed(1) + 'M';
+    } else if (volume >= 1000) {
+        return (volume / 1000).toFixed(1) + 'K';
+    }
+    return volume.toString();
+}
+
+// Helper function to get time ago
+function getTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
 }
 
 function updateActionButtonStates() {

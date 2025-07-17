@@ -2,22 +2,22 @@
 
 A Chrome extension that analyzes webpage content and suggests relevant prediction markets from Kalshi using AI-powered semantic matching and real-time API integration.
 
-## 🚀 New Features
+## New Features
 
-- 🧠 **AI-Powered Semantic Matching**: Uses OpenAI embeddings to find markets most relevant to webpage content
-- 🔍 **Intelligent Page Analysis**: Automatically extracts and analyzes webpage content for market suggestions
-- ⚡ **Real-time Relevance Scoring**: Shows similarity scores for suggested markets
-- 🎯 **Smart Content Extraction**: Focuses on main article content while filtering out navigation and ads
+- **AI-Powered Semantic Matching**: Uses OpenAI embeddings to find markets most relevant to webpage content
+- **Intelligent Page Analysis**: Automatically extracts and analyzes webpage content for market suggestions
+- **Real-time Relevance Scoring**: Shows similarity scores for suggested markets
+- **Smart Content Extraction**: Focuses on main article content while filtering out navigation and ads
 
 ## Features
 
-- 🔍 **Real-time Market Fetching**: Connects directly to Kalshi's API to fetch up-to-date market data
-- 🧠 **Semantic Analysis**: AI-powered matching between webpage content and prediction markets
-- 🎨 **Modern UI**: Clean, responsive interface with purple gradient design
-- 🔐 **Secure Authentication**: Implements RSA-PSS signing for API authentication
-- 📊 **Platform Support**: Currently supports Kalshi markets with Polymarket integration planned
-- 📋 **Easy Actions**: View markets on Kalshi or copy market tickers to clipboard
-- ⚡ **Fast Performance**: Optimized for quick market discovery with intelligent caching
+- **Real-time Market Fetching**: Connects directly to Kalshi's API to fetch up-to-date market data
+- **Semantic Analysis**: AI-powered matching between webpage content and prediction markets
+- **Modern UI**: Clean, responsive interface with purple gradient design
+- **Secure Authentication**: Implements RSA-PSS signing for API authentication
+- **Platform Support**: Currently supports Kalshi markets with Polymarket integration planned
+- **Easy Actions**: View markets on Kalshi or copy market tickers to clipboard
+- **Fast Performance**: Optimized for quick market discovery with intelligent caching
 
 ## Installation
 
