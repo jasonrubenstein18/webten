@@ -519,21 +519,75 @@ function createEdgeIndicatorHtml(edgeAnalysis) {
 
 // Create pricing info HTML if available
 function createPricingInfoHtml(market) {
-    if (!market.detailedDataAvailable || !market.yes_bid) {
-        return '';
+    console.log('Creating pricing info for market:', market.ticker, {
+        orderbookDataAvailable: market.orderbookDataAvailable,
+        detailedDataAvailable: market.detailedDataAvailable,
+        yes_bid: market.yes_bid,
+        yes_ask: market.yes_ask,
+        no_bid: market.no_bid,
+        no_ask: market.no_ask,
+        orderbookError: market.orderbookError
+    });
+    
+    // Check if we have orderbook data (preferred) or detailed data
+    const hasOrderbookData = market.orderbookDataAvailable && 
+        (market.yes_bid !== null || market.yes_ask !== null || market.no_bid !== null || market.no_ask !== null);
+    const hasDetailedData = market.detailedDataAvailable && 
+        (market.yes_bid !== null || market.yes_ask !== null);
+    
+    if (!hasOrderbookData && !hasDetailedData) {
+        console.log('No pricing data available for', market.ticker);
+        // Always show a pricing section, even if data is unavailable
+        return `
+            <div class="pricing-info">
+                <div class="price-section">
+                    <div class="price-display">
+                        <span class="price-label">Yes:</span>
+                        <span class="price-unavailable">Loading...</span>
+                    </div>
+                    <div class="price-display">
+                        <span class="price-label">No:</span>
+                        <span class="price-unavailable">Loading...</span>
+                    </div>
+                    <div class="price-meta">
+                        <span class="price-source">Fetching live prices</span>
+                        ${market.orderbookError ? `<span class="error-hint" title="${market.orderbookError}">!</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
     }
     
+    // Use orderbook data if available, otherwise fall back to detailed data
+    const yesBid = market.yes_bid;
+    const yesAsk = market.yes_ask;
+    const noBid = market.no_bid;
+    const noAsk = market.no_ask;
+    const dataSource = hasOrderbookData ? 'Live' : 'Recent';
+    
+    // Show both Yes and No pricing
     return `
         <div class="pricing-info">
-            <div class="price-display">
-                <span class="price-label">Yes:</span>
-                <span class="price-bid">${market.yes_bid}¢</span>
-                <span class="price-separator">/</span>
-                <span class="price-ask">${market.yes_ask || 'N/A'}¢</span>
-            </div>
-            <div class="volume-info">
-                <span class="volume-label">Vol:</span>
-                <span class="volume-value">${formatVolume(market.volume || 0)}</span>
+            <div class="price-section">
+                <div class="price-display">
+                    <span class="price-label">Yes:</span>
+                    <span class="price-bid" title="Bid price">${yesBid !== null ? yesBid + '¢' : 'N/A'}</span>
+                    <span class="price-separator">/</span>
+                    <span class="price-ask" title="Ask price">${yesAsk !== null ? yesAsk + '¢' : 'N/A'}</span>
+                </div>
+                <div class="price-display">
+                    <span class="price-label">No:</span>
+                    <span class="price-bid" title="Bid price">${noBid !== null ? noBid + '¢' : 'N/A'}</span>
+                    <span class="price-separator">/</span>
+                    <span class="price-ask" title="Ask price">${noAsk !== null ? noAsk + '¢' : 'N/A'}</span>
+                </div>
+                <div class="price-meta">
+                    <span class="price-source" title="${hasOrderbookData ? 'Live orderbook data' : 'Recent market data'}">${dataSource}</span>
+                    <span class="volume-info">
+                        <span class="volume-label">Vol:</span>
+                        <span class="volume-value">${formatVolume(market.volume || 0)}</span>
+                    </span>
+                </div>
             </div>
         </div>
     `;

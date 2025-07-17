@@ -1,209 +1,46 @@
 // Background service worker for the Chrome extension
 console.log('Market Suggestion Extension: Background script loaded');
 
-// Kalshi API configuration
+// API configuration
 const BASE = 'https://demo-api.kalshi.co';
 const KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
-
-// OpenAI API configuration
 const OPENAI_API_KEY = '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';
 const OPENAI_BASE_URL = 'https://api.openai.com/v1';
-
-// Grok API configuration (xAI)
 const GROK_API_KEY = 'xai-237BhLIsoTsrbfY5uIvewcQe3Fg9bu0qRAhpxng39z1CaMCm6wmZ34naoZqvKrNsSjcxHPYxzc4IL53i';
 const GROK_BASE_URL = 'https://api.x.ai/v1';
 
 // Configuration
 const CONFIG = {
-    MAX_PAGES: 20,        // Fetch up to 20 pages (4000 markets max)
-    EVENTS_PER_PAGE: 200, // Max limit per request
-    MAX_RELEVANT_MARKETS: 8, // Maximum number of relevant markets to return
-    MAX_MARKETS_FOR_ANALYSIS: 4000, // Increased limit for thorough analysis
-    API_TIMEOUT: 30000, // 30 second timeout for individual API calls
-    ANALYSIS_TIMEOUT: 180000, // 3 minute timeout for overall analysis
-    EMBEDDING_MODEL: 'text-embedding-3-small', // OpenAI embedding model
-    EMBEDDING_BATCH_SIZE: 20, // Number of embeddings to process at once
-    EMBEDDING_CACHE_EXPIRY: 24 * 60 * 60 * 1000, // 24 hours
-    BATCH_DELAY: 500, // Delay between batches in milliseconds (reduced from 1000)
-    MAX_STORAGE_SIZE: 5 * 1024 * 1024, // 5MB storage limit
+    MAX_PAGES: 20,
+    EVENTS_PER_PAGE: 200,
+    MAX_RELEVANT_MARKETS: 8,
+    MAX_MARKETS_FOR_ANALYSIS: 4000,
+    API_TIMEOUT: 30000,
+    ANALYSIS_TIMEOUT: 180000,
+    EMBEDDING_MODEL: 'text-embedding-3-small',
+    EMBEDDING_BATCH_SIZE: 20,
+    EMBEDDING_CACHE_EXPIRY: 24 * 60 * 60 * 1000,
+    BATCH_DELAY: 500,
+    MAX_STORAGE_SIZE: 5 * 1024 * 1024,
     MAX_RETRY_ATTEMPTS: 3,
-    RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
-    MIN_RELEVANCE_SCORE: 40, // Minimum relevance score for markets to be returned
-    // Grok edge analysis settings
-    EDGE_ANALYSIS_ENABLED: true, // Enable edge analysis by default
-    EDGE_CACHE_EXPIRY: 15 * 60 * 1000, // 15 minutes cache for edge analysis
-    MIN_EDGE_CONFIDENCE: 20, // Minimum confidence score for edge detection
-    GROK_MODEL: 'grok-3-latest', // Grok model to use for edge analysis
-    GROK_TIMEOUT: 45000 // 45 second timeout for Grok API calls
+    RETRY_DELAY_BASE: 1000,
+    MIN_RELEVANCE_SCORE: 40,
+    EDGE_ANALYSIS_ENABLED: true,
+    EDGE_CACHE_EXPIRY: 15 * 60 * 1000,
+    MIN_EDGE_CONFIDENCE: 20,
+    GROK_MODEL: 'grok-3-latest',
+    GROK_TIMEOUT: 45000
 };
 
-// Fetch events from Kalshi API with pagination support
-async function fetchKalshiMarkets() {
-    try {
-        console.log('Starting to fetch Kalshi events...');
-        
-        let allEvents = [];
-        let cursor = null;
-        let pageCount = 0;
-        const maxPages = CONFIG.MAX_PAGES;
-        const limit = CONFIG.EVENTS_PER_PAGE;
-        
-        do {
-            pageCount++;
-            console.log(`Fetching page ${pageCount} of up to ${maxPages}...`);
-            
-            let path = `/trade-api/v2/events?status=open&limit=${limit}`;
-            if (cursor) {
-                path += `&cursor=${encodeURIComponent(cursor)}`;
-            }
-            
-            console.log('Making API request to:', `${BASE}${path}`);
-            const response = await fetch(`${BASE}${path}`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            
-            console.log(`Page ${pageCount} API Response status:`, response.status);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API Error response:', errorText);
-                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-            }
-            
-            const responseText = await response.text();
-            console.log(`Page ${pageCount} API Response received, parsing...`);
-            
-            try {
-                const data = JSON.parse(responseText);
-                console.log(`Page ${pageCount} response data:`, {
-                    eventsCount: data.events?.length || 0,
-                    hasCursor: !!data.cursor
-                });
-                
-                if (data.events && Array.isArray(data.events)) {
-                    allEvents = allEvents.concat(data.events);
-                    console.log(`Total events collected so far: ${allEvents.length}`);
-                }
-                
-                // Update cursor for next page
-                cursor = data.cursor;
-                
-            } catch (parseError) {
-                console.error(`Failed to parse page ${pageCount} response:`, parseError);
-                console.error('Response text:', responseText.substring(0, 500));
-                throw new Error(`Failed to parse API response for page ${pageCount}`);
-            }
-            
-        } while (cursor && pageCount < maxPages);
-        
-        console.log(`Pagination complete. Fetched ${pageCount} pages with ${allEvents.length} total events.`);
-        console.log(`Estimated maximum possible: ${maxPages * limit} events`);
-        
-        // Transform events to match the expected format
-        const events = allEvents.map(event => ({
-            ticker: event.event_ticker,
-            title: event.title,
-            description: event.sub_title || event.title,
-            category: event.category || 'General',
-            series_ticker: event.series_ticker,
-            status: 'open' // All events from this endpoint are open (active and unsettled)
-        }));
-        
-        console.log(`Processed ${events.length} open events from ${allEvents.length} total events`);
-        
-        return {
-            success: true,
-            markets: events // Keep the same property name for compatibility with popup
-        };
-        
-    } catch (error) {
-        console.error('Error fetching Kalshi events:', error);
-        
-        // Return error instead of mock data
-        return {
-            success: false,
-            error: error.message,
-            markets: []
-        };
-    }
-}
-
-// Utility function for exponential backoff delay
+// Utility functions
 function getRetryDelay(attempt) {
     return CONFIG.RETRY_DELAY_BASE * Math.pow(2, attempt);
 }
 
-// OpenAI API functions with retry logic
-async function generateEmbedding(text, retryAttempt = 0) {
-    try {
-        console.log(`Generating embedding for text (attempt ${retryAttempt + 1}):`, text.substring(0, 100) + '...');
-        
-        // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('API request timeout')), CONFIG.API_TIMEOUT);
-        });
-        
-        // Create fetch promise
-        const fetchPromise = fetch(`${OPENAI_BASE_URL}/embeddings`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: CONFIG.EMBEDDING_MODEL,
-                input: text,
-                encoding_format: 'float'
-            })
-        });
-        
-        // Race between fetch and timeout
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.data || !data.data[0] || !data.data[0].embedding) {
-            throw new Error('Invalid response format from OpenAI API');
-        }
-        
-        return data.data[0].embedding;
-        
-    } catch (error) {
-        console.error(`Error generating embedding (attempt ${retryAttempt + 1}):`, error.message);
-        
-        // Retry logic
-        if (retryAttempt < CONFIG.MAX_RETRY_ATTEMPTS - 1) {
-            // Check if it's a retryable error
-            const isRetryable = error.message.includes('timeout') || 
-                              error.message.includes('Failed to fetch') ||
-                              error.message.includes('NetworkError') ||
-                              error.message.includes('429') || // Rate limit
-                              error.message.includes('500') || // Server error
-                              error.message.includes('502') || // Bad gateway
-                              error.message.includes('503');   // Service unavailable
-            
-            if (isRetryable) {
-                const delay = getRetryDelay(retryAttempt);
-                console.log(`Retrying in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return generateEmbedding(text, retryAttempt + 1);
-            }
-        }
-        
-        // If all retries failed or error is not retryable, throw the error
-        throw error;
-    }
+function estimateTokens(text) {
+    return Math.ceil(text.length / 4);
 }
 
-// Calculate cosine similarity between two embeddings
 function cosineSimilarity(a, b) {
     if (a.length !== b.length) {
         throw new Error('Embeddings must have the same length');
@@ -222,6 +59,122 @@ function cosineSimilarity(a, b) {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+// Fetch events from Kalshi API with pagination
+async function fetchKalshiMarkets() {
+    try {
+        console.log('Starting to fetch Kalshi events...');
+        
+        let allEvents = [];
+        let cursor = null;
+        let pageCount = 0;
+        
+        do {
+            pageCount++;
+            console.log(`Fetching page ${pageCount} of up to ${CONFIG.MAX_PAGES}...`);
+            
+            let path = `/trade-api/v2/events?status=open&limit=${CONFIG.EVENTS_PER_PAGE}`;
+            if (cursor) {
+                path += `&cursor=${encodeURIComponent(cursor)}`;
+            }
+            
+            const response = await fetch(`${BASE}${path}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.events && Array.isArray(data.events)) {
+                allEvents = allEvents.concat(data.events);
+            }
+            
+            cursor = data.cursor;
+            
+        } while (cursor && pageCount < CONFIG.MAX_PAGES);
+        
+        console.log(`Fetched ${pageCount} pages with ${allEvents.length} total events.`);
+        
+        const events = allEvents.map(event => ({
+            ticker: event.event_ticker,
+            title: event.title,
+            description: event.sub_title || event.title,
+            category: event.category || 'General',
+            series_ticker: event.series_ticker,
+            status: 'open'
+        }));
+        
+        return { success: true, markets: events };
+        
+    } catch (error) {
+        console.error('Error fetching Kalshi events:', error);
+        return { success: false, error: error.message, markets: [] };
+    }
+}
+
+// OpenAI API functions with retry logic
+async function generateEmbedding(text, retryAttempt = 0) {
+    try {
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('API request timeout')), CONFIG.API_TIMEOUT);
+        });
+        
+        const fetchPromise = fetch(`${OPENAI_BASE_URL}/embeddings`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: CONFIG.EMBEDDING_MODEL,
+                input: text,
+                encoding_format: 'float'
+            })
+        });
+        
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.data || !data.data[0] || !data.data[0].embedding) {
+            throw new Error('Invalid response format from OpenAI API');
+        }
+        
+        return data.data[0].embedding;
+        
+    } catch (error) {
+        console.error(`Error generating embedding (attempt ${retryAttempt + 1}):`, error.message);
+        
+        if (retryAttempt < CONFIG.MAX_RETRY_ATTEMPTS - 1) {
+            const isRetryable = error.message.includes('timeout') || 
+                              error.message.includes('Failed to fetch') ||
+                              error.message.includes('NetworkError') ||
+                              error.message.includes('429') ||
+                              error.message.includes('500') ||
+                              error.message.includes('502') ||
+                              error.message.includes('503');
+            
+            if (isRetryable) {
+                const delay = getRetryDelay(retryAttempt);
+                console.log(`Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return generateEmbedding(text, retryAttempt + 1);
+            }
+        }
+        
+        throw error;
+    }
+}
+
 // Group markets by event/series for multi-participant analysis
 function groupMarketsByEvent(markets) {
     const groups = {};
@@ -234,21 +187,18 @@ function groupMarketsByEvent(markets) {
         groups[eventKey].push(market);
     });
     
-    // Identify multi-participant events
     const multiParticipantGroups = [];
     const singleMarkets = [];
     
     Object.entries(groups).forEach(([eventKey, eventMarkets]) => {
         if (eventMarkets.length > 1) {
-            // This is likely a multi-participant event
             multiParticipantGroups.push({
                 eventKey,
-                eventTitle: eventMarkets[0].title.split(' - ')[0] || eventMarkets[0].title, // Extract base event title
+                eventTitle: eventMarkets[0].title.split(' - ')[0] || eventMarkets[0].title,
                 markets: eventMarkets,
                 isMultiParticipant: true
             });
         } else {
-            // Single binary market
             singleMarkets.push({
                 ...eventMarkets[0],
                 isMultiParticipant: false
@@ -256,10 +206,7 @@ function groupMarketsByEvent(markets) {
         }
     });
     
-    return {
-        multiParticipantGroups,
-        singleMarkets
-    };
+    return { multiParticipantGroups, singleMarkets };
 }
 
 // Enhanced market data fetching from Kalshi API
@@ -267,22 +214,16 @@ async function fetchDetailedMarketData(markets) {
     console.log(`Fetching detailed data for ${markets.length} markets...`);
     
     const enhancedMarkets = [];
-    
-    // Process markets in batches to avoid overwhelming the API
     const batchSize = 5;
+    
     for (let i = 0; i < markets.length; i += batchSize) {
         const batch = markets.slice(i, i + batchSize);
         
         const batchPromises = batch.map(async (market) => {
             try {
-                // Fetch detailed market data including pricing
-                const marketPath = `/trade-api/v2/events/${market.ticker}`;
-                
-                const response = await fetch(`${BASE}${marketPath}`, {
+                const response = await fetch(`${BASE}/trade-api/v2/events/${market.ticker}`, {
                     method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'Accept': 'application/json' }
                 });
                 
                 if (!response.ok) {
@@ -291,18 +232,12 @@ async function fetchDetailedMarketData(markets) {
                 }
                 
                 const data = await response.json();
-                
-                // Extract relevant pricing and market data
                 const eventData = data.event || {};
                 const marketData = eventData.markets?.[0] || {};
-                
-                // Extract participant name from market title if it's a multi-participant market
-                const participantName = extractParticipantName(market.title);
                 
                 return {
                     ...market,
                     detailedDataAvailable: true,
-                    participantName: participantName,
                     currentPrice: marketData.yes_bid || null,
                     volume: marketData.volume || 0,
                     open_interest: marketData.open_interest || 0,
@@ -325,54 +260,164 @@ async function fetchDetailedMarketData(markets) {
         const batchResults = await Promise.all(batchPromises);
         enhancedMarkets.push(...batchResults);
         
-        // Small delay between batches
         if (i + batchSize < markets.length) {
             await new Promise(resolve => setTimeout(resolve, 200));
         }
     }
     
-    console.log(`Enhanced market data fetching completed for ${enhancedMarkets.length} markets`);
     return enhancedMarkets;
 }
 
-// Extract participant name from market title
-function extractParticipantName(title) {
-    // Common patterns for participant names in titles
-    // e.g., "Who will Trump nominate as Fed Chair? - Kevin Hassett"
-    // e.g., "Kevin Hassett to be nominated as Fed Chair?"
+// Fetch current orderbook data for markets
+async function fetchOrderbookData(markets, progressCallback = null) {
+    console.log(`Fetching orderbook data for ${markets.length} markets...`);
     
-    if (title.includes(' - ')) {
-        return title.split(' - ')[1]?.trim();
+    if (progressCallback) {
+        progressCallback({
+            phase: 'orderbook',
+            current: 1,
+            total: 3,
+            message: 'Fetching current bid/ask prices...'
+        });
     }
     
-    // Look for patterns like "Name to be" or "Will Name"
-    const namePatterns = [
-        /^(\w+\s+\w+)\s+to\s+be/i,  // "Kevin Hassett to be"
-        /Will\s+(\w+\s+\w+)/i,      // "Will Kevin Hassett"
-        /^(\w+\s+\w+)\s+will/i      // "Kevin Hassett will"
-    ];
+    const tickerMap = new Map();
+    markets.forEach(market => {
+        tickerMap.set(market.ticker, market);
+    });
     
-    for (const pattern of namePatterns) {
-        const match = title.match(pattern);
-        if (match) {
-            return match[1];
+    const marketsWithOrderbook = [];
+    const batchSize = 200;
+    const totalBatches = Math.ceil(markets.length / batchSize);
+    
+    for (let i = 0; i < markets.length; i += batchSize) {
+        const batch = markets.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+        
+        if (progressCallback) {
+            progressCallback({
+                phase: 'orderbook',
+                current: 1 + Math.floor((i / markets.length) * 2),
+                total: 3,
+                message: `Fetching orderbook data (${batchNumber}/${totalBatches})...`
+            });
+        }
+        
+        try {
+            const tickers = batch.map(market => market.ticker).join(',');
+            const response = await fetch(`${BASE}/trade-api/v2/markets?tickers=${encodeURIComponent(tickers)}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => 'Unknown error');
+                console.warn(`Failed to fetch markets data for batch ${batchNumber}: ${response.status}`);
+                
+                batch.forEach(market => {
+                    marketsWithOrderbook.push({
+                        ...market,
+                        orderbookDataAvailable: false,
+                        orderbookError: `HTTP ${response.status}: ${errorText}`
+                    });
+                });
+                continue;
+            }
+            
+            const data = await response.json();
+            
+            if (data.markets && Array.isArray(data.markets)) {
+                data.markets.forEach(marketData => {
+                    const originalMarket = tickerMap.get(marketData.ticker);
+                    if (originalMarket) {
+                        const enhancedMarket = {
+                            ...originalMarket,
+                            orderbookDataAvailable: true,
+                            detailedDataAvailable: true,
+                            yes_ask: marketData.yes_ask,
+                            no_ask: marketData.no_ask,
+                            yes_bid: marketData.yes_bid,
+                            no_bid: marketData.no_bid,
+                            last_price: marketData.last_price,
+                            volume: marketData.volume || 0,
+                            volume_24h: marketData.volume_24h || 0,
+                            open_interest: marketData.open_interest || 0,
+                            close_time: marketData.close_time,
+                            can_close_early: marketData.can_close_early,
+                            market_type: marketData.market_type,
+                            orderbookTimestamp: Date.now()
+                        };
+                        
+                        marketsWithOrderbook.push(enhancedMarket);
+                    }
+                });
+                
+                batch.forEach(market => {
+                    const found = data.markets.some(m => m.ticker === market.ticker);
+                    if (!found) {
+                        marketsWithOrderbook.push({
+                            ...market,
+                            orderbookDataAvailable: false,
+                            orderbookError: 'Market not found in API response'
+                        });
+                    }
+                });
+            } else {
+                batch.forEach(market => {
+                    marketsWithOrderbook.push({
+                        ...market,
+                        orderbookDataAvailable: false,
+                        orderbookError: 'Invalid API response format'
+                    });
+                });
+            }
+            
+        } catch (error) {
+            console.error(`Error fetching markets data for batch ${batchNumber}:`, error);
+            batch.forEach(market => {
+                marketsWithOrderbook.push({
+                    ...market,
+                    orderbookDataAvailable: false,
+                    orderbookError: error.message
+                });
+            });
+        }
+        
+        if (i + batchSize < markets.length) {
+            await new Promise(resolve => setTimeout(resolve, 300));
         }
     }
     
+    if (progressCallback) {
+        progressCallback({
+            phase: 'orderbook',
+            current: 3,
+            total: 3,
+            message: 'Orderbook data complete!'
+        });
+    }
+    
+    console.log(`Orderbook data fetching completed for ${marketsWithOrderbook.length} markets`);
+    return marketsWithOrderbook;
+}
+
+
+// Extract participant name from ticker
+function extractParticipantFromTicker(ticker) {
+    const parts = ticker.split('-');
+    if (parts.length > 1) {
+        return parts[parts.length - 1].replace(/([A-Z])/g, ' $1').trim();
+    }
     return null;
 }
 
-// Grok API call for edge analysis with retry logic
+// Grok API call for edge analysis
 async function callGrokAPI(prompt, retryAttempt = 0) {
     try {
-        console.log(`Calling Grok API for edge analysis (attempt ${retryAttempt + 1})...`);
-        
-        // Create timeout promise
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Grok API request timeout')), CONFIG.GROK_TIMEOUT);
         });
         
-        // Create fetch promise
         const fetchPromise = fetch(`${GROK_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -396,7 +441,6 @@ async function callGrokAPI(prompt, retryAttempt = 0) {
             })
         });
         
-        // Race between fetch and timeout
         const response = await Promise.race([fetchPromise, timeoutPromise]);
         
         if (!response.ok) {
@@ -415,15 +459,14 @@ async function callGrokAPI(prompt, retryAttempt = 0) {
     } catch (error) {
         console.error(`Error calling Grok API (attempt ${retryAttempt + 1}):`, error.message);
         
-        // Retry logic for retryable errors
         if (retryAttempt < CONFIG.MAX_RETRY_ATTEMPTS - 1) {
             const isRetryable = error.message.includes('timeout') || 
                               error.message.includes('Failed to fetch') ||
                               error.message.includes('NetworkError') ||
-                              error.message.includes('429') || // Rate limit
-                              error.message.includes('500') || // Server error
-                              error.message.includes('502') || // Bad gateway
-                              error.message.includes('503');   // Service unavailable
+                              error.message.includes('429') ||
+                              error.message.includes('500') ||
+                              error.message.includes('502') ||
+                              error.message.includes('503');
             
             if (isRetryable) {
                 const delay = getRetryDelay(retryAttempt);
@@ -433,7 +476,6 @@ async function callGrokAPI(prompt, retryAttempt = 0) {
             }
         }
         
-        // If all retries failed or error is not retryable, throw the error
         throw error;
     }
 }
@@ -441,13 +483,10 @@ async function callGrokAPI(prompt, retryAttempt = 0) {
 // Build edge analysis prompt for Grok
 function buildEdgeAnalysisPrompt(enhancedMarkets, pageContent) {
     const contentSummary = `${pageContent.title || ''} ${pageContent.summary || ''}`.substring(0, 1000);
-    
-    // Group markets by event for multi-participant analysis
     const marketGroups = groupMarketsByEvent(enhancedMarkets);
     
     let marketsInfo = '';
     
-    // Add multi-participant event groups
     marketGroups.multiParticipantGroups.forEach(group => {
         marketsInfo += `\nMULTI-PARTICIPANT EVENT: ${group.eventTitle}\n`;
         marketsInfo += `Event Key: ${group.eventKey}\n`;
@@ -467,7 +506,6 @@ function buildEdgeAnalysisPrompt(enhancedMarkets, pageContent) {
         marketsInfo += '---\n';
     });
     
-    // Add single binary markets
     marketGroups.singleMarkets.forEach(market => {
         const pricingInfo = (market.yes_bid !== null && market.yes_bid !== undefined) ? 
             `Current prices: Yes ${market.yes_bid}¢ (bid) / ${market.yes_ask || 'N/A'}¢ (ask), Volume: ${market.volume || 0}, Last price: ${market.last_price || 'N/A'}¢` :
@@ -527,27 +565,15 @@ For multi-participant events, return one analysis object for the event (not per 
 Only include markets/events where you have sufficient information to make an assessment. For multi-participant events, only return ONE recommendation for the best participant.`;
 }
 
-// Extract participant name from ticker if not found in title
-function extractParticipantFromTicker(ticker) {
-    // Common patterns in tickers like "FEDCHAIR-HASSETT" or "PRES2024-BIDEN"
-    const parts = ticker.split('-');
-    if (parts.length > 1) {
-        return parts[parts.length - 1].replace(/([A-Z])/g, ' $1').trim();
-    }
-    return null;
-}
-
 // Analyze markets for edges using Grok
 async function analyzeMarketEdges(relevantMarkets, pageContent, progressCallback = null) {
     if (!CONFIG.EDGE_ANALYSIS_ENABLED || !relevantMarkets || relevantMarkets.length === 0) {
-        console.log('Edge analysis disabled or no markets to analyze');
         return relevantMarkets.map(market => ({ ...market, edgeAnalysis: null }));
     }
     
     try {
         console.log(`Starting edge analysis for ${relevantMarkets.length} markets...`);
         
-        // Report progress: Starting edge analysis
         if (progressCallback) {
             progressCallback({
                 phase: 'edge_analysis',
@@ -557,41 +583,43 @@ async function analyzeMarketEdges(relevantMarkets, pageContent, progressCallback
             });
         }
         
-        // Check cache first
-        const cacheKey = `edgeAnalysis_${Date.now()}`;
-        
-        // Fetch detailed market data
         if (progressCallback) {
             progressCallback({
                 phase: 'edge_analysis',
                 current: 2,
-                total: 4,
+                total: 5,
                 message: 'Fetching detailed market data...'
             });
         }
         const enhancedMarkets = await fetchDetailedMarketData(relevantMarkets);
         
-        // Build prompt for Grok analysis
         if (progressCallback) {
             progressCallback({
                 phase: 'edge_analysis',
                 current: 3,
-                total: 4,
+                total: 5,
+                message: 'Fetching current bid/ask prices...'
+            });
+        }
+        const marketsWithOrderbook = await fetchOrderbookData(enhancedMarkets, progressCallback);
+        
+        if (progressCallback) {
+            progressCallback({
+                phase: 'edge_analysis',
+                current: 4,
+                total: 5,
                 message: 'Analyzing market inefficiencies...'
             });
         }
-        const prompt = buildEdgeAnalysisPrompt(enhancedMarkets, pageContent);
+        const prompt = buildEdgeAnalysisPrompt(marketsWithOrderbook, pageContent);
         
-        // Call Grok API for edge analysis
         const grokResponse = await callGrokAPI(prompt);
         
-        // Parse Grok response
         let edgeAnalyses;
         try {
             edgeAnalyses = JSON.parse(grokResponse);
         } catch (parseError) {
             console.error('Failed to parse Grok response:', parseError);
-            // Try to extract JSON from response if it's wrapped in text
             const jsonMatch = grokResponse.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
                 edgeAnalyses = JSON.parse(jsonMatch[0]);
@@ -604,12 +632,9 @@ async function analyzeMarketEdges(relevantMarkets, pageContent, progressCallback
             throw new Error('Grok response is not an array');
         }
         
-        // Attach edge analysis to markets, handling both multi-participant and binary markets
-        const marketsWithEdges = enhancedMarkets.map(market => {
-            // First try direct ticker match (for binary markets)
+        const marketsWithEdges = marketsWithOrderbook.map(market => {
             let edgeData = edgeAnalyses.find(analysis => analysis.ticker === market.ticker);
             
-            // If not found, check if this market is part of a multi-participant event
             if (!edgeData) {
                 const eventKey = market.series_ticker || market.ticker.split('-')[0];
                 edgeData = edgeAnalyses.find(analysis => 
@@ -619,23 +644,18 @@ async function analyzeMarketEdges(relevantMarkets, pageContent, progressCallback
             }
             
             if (!edgeData) {
-                return {
-                    ...market,
-                    edgeAnalysis: null
-                };
+                return { ...market, edgeAnalysis: null };
             }
             
-            // For multi-participant events, determine if this specific market is the recommended one
             let isRecommendedParticipant = false;
             let marketSpecificRecommendation = edgeData.recommendation;
             
             if (edgeData.isMultiParticipant) {
                 isRecommendedParticipant = (edgeData.recommendation === market.ticker);
-                // For non-recommended participants in multi-participant events
                 if (!isRecommendedParticipant) {
                     marketSpecificRecommendation = 'avoid';
                 } else {
-                    marketSpecificRecommendation = 'buy_yes'; // The recommended participant should be bought YES
+                    marketSpecificRecommendation = 'buy_yes';
                 }
             }
             
@@ -657,26 +677,20 @@ async function analyzeMarketEdges(relevantMarkets, pageContent, progressCallback
             };
         });
         
-        // Filter out non-recommended participants from multi-participant events
         const filteredMarkets = marketsWithEdges.filter(market => {
-            // Always include binary markets
             if (!market.edgeAnalysis?.isMultiParticipant) {
                 return true;
             }
-            
-            // For multi-participant events, only include the recommended participant
             return market.edgeAnalysis?.isRecommendedParticipant === true;
         });
         
         console.log(`Edge analysis completed. Found ${marketsWithEdges.filter(m => m.edgeAnalysis?.hasEdge).length} markets with potential edges.`);
-        console.log(`Filtered to ${filteredMarkets.length} markets (removed non-recommended participants from multi-participant events).`);
         
-        // Report progress: Edge analysis complete
         if (progressCallback) {
             progressCallback({
                 phase: 'edge_analysis',
-                current: 4,
-                total: 4,
+                current: 5,
+                total: 5,
                 message: 'Edge analysis complete!'
             });
         }
@@ -685,7 +699,6 @@ async function analyzeMarketEdges(relevantMarkets, pageContent, progressCallback
         
     } catch (error) {
         console.error('Error in edge analysis:', error);
-        // Return markets without edge analysis if Grok fails
         return relevantMarkets.map(market => ({ 
             ...market, 
             edgeAnalysis: { 
@@ -718,15 +731,13 @@ async function checkStorageSpace(dataSize) {
     const currentUsage = await getStorageUsage();
     const availableSpace = CONFIG.MAX_STORAGE_SIZE - currentUsage;
     
-    console.log(`Storage usage: ${currentUsage} bytes, available: ${availableSpace} bytes, needed: ${dataSize} bytes`);
-    
     if (dataSize > availableSpace) {
         console.log('Insufficient storage space, clearing cache...');
         await clearOldCache();
-        return true; // Cache cleared
+        return true;
     }
     
-    return false; // No clearing needed
+    return false;
 }
 
 // Cache management for market embeddings
@@ -750,10 +761,7 @@ async function getCachedMarketEmbeddings() {
 
 async function cacheMarketEmbeddings(embeddings) {
     try {
-        // Estimate storage size (rough calculation)
-        const estimatedSize = JSON.stringify(embeddings).length * 2; // UTF-16 encoding
-        
-        // Check if we have enough space
+        const estimatedSize = JSON.stringify(embeddings).length * 2;
         await checkStorageSpace(estimatedSize);
         
         return new Promise((resolve, reject) => {
@@ -763,7 +771,6 @@ async function cacheMarketEmbeddings(embeddings) {
             }, () => {
                 if (chrome.runtime.lastError) {
                     console.error('Failed to cache embeddings:', chrome.runtime.lastError);
-                    // If storage fails, continue without caching
                     resolve();
                 } else {
                     console.log('Market embeddings cached successfully');
@@ -773,19 +780,17 @@ async function cacheMarketEmbeddings(embeddings) {
         });
     } catch (error) {
         console.error('Error in cacheMarketEmbeddings:', error);
-        // Continue without caching if there's an error
     }
 }
 
-// Generate embeddings for all active markets with improved batching and progress tracking
+// Generate embeddings for all active markets
 async function generateMarketEmbeddings(markets, progressCallback = null) {
     console.log(`Generating embeddings for ${markets.length} markets...`);
     
-    // Check cache first
     const cachedEmbeddings = await getCachedMarketEmbeddings();
-    if (cachedEmbeddings && cachedEmbeddings.length >= markets.length * 0.8) { // Allow 20% cache miss tolerance
+    if (cachedEmbeddings && cachedEmbeddings.length >= markets.length * 0.8) {
         console.log(`Using cached embeddings for ${cachedEmbeddings.length} markets`);
-        return cachedEmbeddings.slice(0, markets.length); // Return only what we need
+        return cachedEmbeddings.slice(0, markets.length);
     }
     
     const embeddings = [];
@@ -793,14 +798,12 @@ async function generateMarketEmbeddings(markets, progressCallback = null) {
     const totalBatches = Math.ceil(markets.length / batchSize);
     let processedCount = 0;
     
-    // Process markets in smaller batches with progress tracking
     for (let i = 0; i < markets.length; i += batchSize) {
         const batch = markets.slice(i, i + batchSize);
         const batchNumber = Math.floor(i / batchSize) + 1;
         
         console.log(`Processing embedding batch ${batchNumber}/${totalBatches} (${batch.length} markets)`);
         
-        // Send progress update if callback provided
         if (progressCallback) {
             progressCallback({
                 phase: 'embeddings',
@@ -810,12 +813,10 @@ async function generateMarketEmbeddings(markets, progressCallback = null) {
             });
         }
         
-        // Process batch with timeout protection
         const batchPromises = batch.map(async (market, index) => {
             try {
-                // Add timeout wrapper for individual embedding generation
                 const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Embedding generation timeout')), 30000); // 30 second timeout
+                    setTimeout(() => reject(new Error('Embedding generation timeout')), 30000);
                 });
                 
                 const embeddingPromise = (async () => {
@@ -850,10 +851,8 @@ async function generateMarketEmbeddings(markets, progressCallback = null) {
             
         } catch (error) {
             console.error(`Error processing batch ${batchNumber}:`, error);
-            // Continue with next batch even if current batch fails
         }
         
-        // Delay between batches to respect rate limits
         if (i + batchSize < markets.length) {
             await new Promise(resolve => setTimeout(resolve, CONFIG.BATCH_DELAY));
         }
@@ -861,7 +860,6 @@ async function generateMarketEmbeddings(markets, progressCallback = null) {
     
     console.log(`Embedding generation completed: ${embeddings.length}/${markets.length} markets processed`);
     
-    // Cache the embeddings (with error handling)
     try {
         await cacheMarketEmbeddings(embeddings);
     } catch (error) {
@@ -871,40 +869,16 @@ async function generateMarketEmbeddings(markets, progressCallback = null) {
     return embeddings;
 }
 
-// Estimate token count (rough approximation)
-function estimateTokens(text) {
-    // Rough estimate: 1 token ≈ 4 characters for English text
-    return Math.ceil(text.length / 4);
-}
-
-// Create a summarized version of markets for AI analysis
-function summarizeMarketsForAI(markets) {
-    return markets.map(market => {
-        // Create a condensed version with key information
-        const title = market.title.length > 100 ? market.title.substring(0, 100) + '...' : market.title;
-        const description = market.description.length > 150 ? market.description.substring(0, 150) + '...' : market.description;
-        
-        return {
-            ticker: market.ticker,
-            title: title,
-            description: description,
-            category: market.category
-        };
-    });
-}
-
-// Generate AI-powered content summary using OpenAI
+// Generate AI-powered content summary
 async function generateAIContentSummary(title, summary) {
     try {
         console.log('Generating AI summary for content...');
         
-        // Prepare content for summarization
         let contentText = `${title || ''} ${summary || ''}`.trim();
         if (!contentText || contentText.length < 10) {
             return title || 'Content summary not available';
         }
         
-        // Truncate if too long to save tokens
         if (contentText.length > 2000) {
             contentText = contentText.substring(0, 2000) + '...';
         }
@@ -915,12 +889,10 @@ ${contentText}
 
 Summary (400 characters max):`;
 
-        // Create timeout promise
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('AI summary timeout')), CONFIG.API_TIMEOUT);
         });
         
-        // Create fetch promise
         const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
@@ -940,7 +912,6 @@ Summary (400 characters max):`;
             })
         });
         
-        // Race between fetch and timeout
         const response = await Promise.race([fetchPromise, timeoutPromise]);
         
         if (!response.ok) {
@@ -956,7 +927,6 @@ Summary (400 characters max):`;
         
         const aiSummary = data.choices[0].message.content.trim();
         
-        // Ensure it's within 400 characters
         if (aiSummary.length > 400) {
             return aiSummary.substring(0, 397) + '...';
         }
@@ -965,39 +935,47 @@ Summary (400 characters max):`;
         
     } catch (error) {
         console.error('Error generating AI summary:', error);
-        // Fallback to a simple summary if AI fails
         const fallback = `${title || ''} ${summary || ''}`.substring(0, 397) + '...';
         return fallback || 'Content summary not available';
     }
 }
 
-// Find relevant markets using AI-powered relevance analysis with optimized batching
+// Create a summarized version of markets for AI analysis
+function summarizeMarketsForAI(markets) {
+    return markets.map(market => {
+        const title = market.title.length > 100 ? market.title.substring(0, 100) + '...' : market.title;
+        const description = market.description.length > 150 ? market.description.substring(0, 150) + '...' : market.description;
+        
+        return {
+            ticker: market.ticker,
+            title: title,
+            description: description,
+            category: market.category
+        };
+    });
+}
+
+// Find relevant markets using AI-powered relevance analysis
 async function findRelevantMarkets(pageContent, markets, progressCallback = null) {
     const startTime = Date.now();
     
-    // Wrap the entire analysis in a timeout to prevent hanging
     const analysisPromise = (async () => {
         console.log('Finding relevant markets using AI analysis...');
         
-        // Limit the number of markets to process for efficiency
         const limitedMarkets = markets.slice(0, CONFIG.MAX_MARKETS_FOR_ANALYSIS);
         console.log(`Processing ${limitedMarkets.length} markets (limited from ${markets.length})`);
         
-        // Prepare page content (truncate if too long)
         let contentText = `${pageContent.title} ${pageContent.summary}`.trim();
         if (!contentText || contentText.length < 10) {
             throw new Error('Insufficient page content for analysis');
         }
         
-        // Generate AI-powered summary for display (400 characters max)
         const displaySummary = await generateAIContentSummary(pageContent.title, pageContent.summary);
         
-        // Truncate content if too long to save tokens
         if (contentText.length > 1500) {
             contentText = contentText.substring(0, 1500) + '...';
         }
         
-        // Use larger batch size and fewer batches for efficiency
         const basePromptTokens = estimateTokens(`Given the following webpage content and list of prediction markets, 
             identify which markets are most relevant to the content. Return ONLY a JSON array of the top 5-8 most 
             relevant markets with their relevance scores. The relevance score is a number between 0 and 100, where 100 is the most relevant. 
@@ -1021,20 +999,15 @@ Return ONLY a JSON array in this exact format:
 
 Only include markets with relevance score ${CONFIG.MIN_RELEVANCE_SCORE} or higher. If no markets are highly relevant, return an empty array.`) ;
         
-        // Reserve tokens for response (1000) and safety margin (1000)
         const availableTokens = 16000 - basePromptTokens - 2000;
-        
-        // Estimate tokens per market entry (ticker + title + description)
-        const avgTokensPerMarket = 40; // More aggressive estimate
+        const avgTokensPerMarket = 40;
         const marketsPerBatch = Math.floor(availableTokens / avgTokensPerMarket);
-        const batchSize = Math.min(marketsPerBatch, 300); // Larger batch size for efficiency
+        const batchSize = Math.min(marketsPerBatch, 300);
         
         console.log(`Token analysis: base=${basePromptTokens}, available=${availableTokens}, batch size=${batchSize}`);
         
-        // Summarize markets to reduce token usage
         const summarizedMarkets = summarizeMarketsForAI(limitedMarkets);
         
-        // Limit to maximum 12 batches to ensure reasonable completion time while allowing more comprehensive analysis
         const maxBatches = 12;
         const totalBatches = Math.min(Math.ceil(summarizedMarkets.length / batchSize), maxBatches);
         const marketsToProcess = summarizedMarkets.slice(0, totalBatches * batchSize);
@@ -1059,12 +1032,10 @@ Only include markets with relevance score ${CONFIG.MIN_RELEVANCE_SCORE} or highe
             }
             
             try {
-                // Prepare markets list for this batch
                 const marketsList = batch.map((market, index) => 
                     `${i + index + 1}. ${market.ticker}: ${market.title} - ${market.description}`
                 ).join('\n');
                 
-                // Create optimized prompt for relevance analysis
                 const prompt = `Given the following webpage content and list of prediction markets, identify which markets are most relevant to the content. Based specifically on the content of the webpage what markets might the user be most interested in participating in? Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
 
 WEBPAGE CONTENT:
@@ -1077,7 +1048,7 @@ ${marketsList}
 Return ONLY a JSON array in this exact format:
 [
   {
-    "ticker": "MARKET_TICKER",
+    "ticker": "COMPLETE_MARKET_TICKER_EXACTLY_AS_SHOWN_ABOVE",
     "relevanceScore": 85,
     "reason": "Brief explanation of relevance"
   }
@@ -1085,7 +1056,6 @@ Return ONLY a JSON array in this exact format:
 
 Only include markets with relevance score 40 or higher. If no markets are highly relevant, return an empty array.`;
 
-                // Double-check token count before sending
                 const promptTokens = estimateTokens(prompt);
                 if (promptTokens > 15000) {
                     console.warn(`Batch ${batchNumber} prompt too long (${promptTokens} tokens), skipping...`);
@@ -1094,12 +1064,10 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                 
                 console.log(`Sending AI analysis request for batch ${batchNumber} (${promptTokens} estimated tokens)...`);
                 
-                // Create timeout promise
                 const timeoutPromise = new Promise((_, reject) => {
                     setTimeout(() => reject(new Error('AI analysis timeout')), CONFIG.API_TIMEOUT);
                 });
                 
-                // Create fetch promise
                 const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
                     method: 'POST',
                     headers: {
@@ -1119,7 +1087,6 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                     })
                 });
                 
-                // Race between fetch and timeout
                 const response = await Promise.race([fetchPromise, timeoutPromise]);
                 
                 if (!response.ok) {
@@ -1136,13 +1103,11 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                 const aiResponse = data.choices[0].message.content.trim();
                 console.log(`AI Response for batch ${batchNumber}:`, aiResponse);
                 
-                // Parse AI response
                 let relevantTickers;
                 try {
                     relevantTickers = JSON.parse(aiResponse);
                 } catch (parseError) {
                     console.error(`Failed to parse AI response for batch ${batchNumber}:`, parseError);
-                    // Try to extract JSON from response if it's wrapped in text
                     const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
                     if (jsonMatch) {
                         relevantTickers = JSON.parse(jsonMatch[0]);
@@ -1157,7 +1122,6 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                     continue;
                 }
                 
-                // Match AI results with original market data
                 const batchRelevantMarkets = relevantTickers.map(aiMarket => {
                     const originalMarket = limitedMarkets.find(m => m.ticker === aiMarket.ticker);
                     if (!originalMarket) {
@@ -1175,18 +1139,15 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                 allRelevantMarkets = allRelevantMarkets.concat(batchRelevantMarkets);
                 console.log(`Batch ${batchNumber} completed: ${batchRelevantMarkets.length} relevant markets found`);
                 
-                // Reduced delay between batches
                 if (i + batchSize < marketsToProcess.length) {
                     await new Promise(resolve => setTimeout(resolve, CONFIG.BATCH_DELAY));
                 }
                 
             } catch (error) {
                 console.error(`Error processing batch ${batchNumber}:`, error);
-                // Continue with next batch even if current batch fails
             }
         }
         
-        // Sort by relevance score and take top results
         allRelevantMarkets.sort((a, b) => b.relevanceScore - a.relevanceScore);
         const topRelevantMarkets = allRelevantMarkets.slice(0, CONFIG.MAX_RELEVANT_MARKETS);
         
@@ -1203,7 +1164,6 @@ Only include markets with relevance score 40 or higher. If no markets are highly
         };
     })();
     
-    // Add overall timeout for the entire analysis
     const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Analysis timed out after 2 minutes')), CONFIG.ANALYSIS_TIMEOUT);
     });
@@ -1273,13 +1233,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     markets: []
                 });
             });
-        return true; // Keep message channel open for async response
+        return true;
     }
     
     if (request.action === 'analyzePageContent') {
         console.log('Analyzing page content for relevant markets...');
         
-        // First get the page content from the content script
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (!tabs[0]) {
                 sendResponse({
@@ -1311,7 +1270,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
                 
                 try {
-                    // Fetch active markets
                     const marketsResult = await fetchKalshiMarkets();
                     if (!marketsResult.success) {
                         sendResponse({
@@ -1322,7 +1280,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         return;
                     }
                     
-                    // Find relevant markets using semantic matching
                     const relevantResult = await findRelevantMarkets(
                         contentResponse.content, 
                         marketsResult.markets
@@ -1333,19 +1290,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         return;
                     }
                     
-                    // Analyze relevant markets for potential edges using Grok
-                    let marketsWithEdges = [];
+                    let marketsWithOrderbook = [];
                     if (relevantResult.markets && relevantResult.markets.length > 0) {
+                        console.log('Fetching orderbook data for relevant markets...', relevantResult.markets.map(m => m.ticker));
+                        try {
+                            marketsWithOrderbook = await fetchOrderbookData(relevantResult.markets);
+                            console.log('Orderbook data fetched. Results:', marketsWithOrderbook.map(m => ({
+                                ticker: m.ticker,
+                                orderbookDataAvailable: m.orderbookDataAvailable,
+                                yes_bid: m.yes_bid,
+                                yes_ask: m.yes_ask,
+                                no_bid: m.no_bid,
+                                no_ask: m.no_ask,
+                                orderbookError: m.orderbookError
+                            })));
+                        } catch (orderbookError) {
+                            console.error('Orderbook fetching failed, continuing with basic market data:', orderbookError);
+                            marketsWithOrderbook = relevantResult.markets.map(market => ({ 
+                                ...market, 
+                                orderbookDataAvailable: false,
+                                orderbookError: 'Orderbook data unavailable: ' + orderbookError.message
+                            }));
+                        }
+                    } else {
+                        marketsWithOrderbook = relevantResult.markets;
+                    }
+                    
+                    let marketsWithEdges = [];
+                    if (marketsWithOrderbook && marketsWithOrderbook.length > 0) {
                         console.log('Starting edge analysis with Grok...');
                         try {
                             marketsWithEdges = await analyzeMarketEdges(
-                                relevantResult.markets, 
+                                marketsWithOrderbook, 
                                 contentResponse.content
                             );
                         } catch (edgeError) {
                             console.error('Edge analysis failed, continuing without edge data:', edgeError);
-                            // Continue with original markets if edge analysis fails
-                            marketsWithEdges = relevantResult.markets.map(market => ({ 
+                            marketsWithEdges = marketsWithOrderbook.map(market => ({ 
                                 ...market, 
                                 edgeAnalysis: { 
                                     error: 'Edge analysis unavailable',
@@ -1354,10 +1335,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             }));
                         }
                     } else {
-                        marketsWithEdges = relevantResult.markets;
+                        marketsWithEdges = marketsWithOrderbook;
                     }
                     
-                    // Send response with edge analysis included
                     sendResponse({
                         ...relevantResult,
                         markets: marketsWithEdges,
@@ -1375,7 +1355,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
         });
         
-        return true; // Keep message channel open for async response
+        return true;
     }
 });
 
