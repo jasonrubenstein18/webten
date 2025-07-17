@@ -29,7 +29,7 @@ const CONFIG = {
     MAX_STORAGE_SIZE: 5 * 1024 * 1024, // 5MB storage limit
     MAX_RETRY_ATTEMPTS: 3,
     RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
-    MAX_MISPRICING_ANALYSES: 10, // Max total mispricing analyses to run
+    MAX_MISPRICING_ANALYSES: 50, // Max total mispricing analyses to run
     MISPRICING_CACHE_EXPIRY: 60 * 60 * 1000, // 1 hour
 };
 
@@ -499,7 +499,7 @@ async function analyzeMarketMispricing(market, contentSummary) {
     
     // Check cache first
     const cached = await getCachedMispricing(ticker);
-    if (cached) {
+    if (typeof cached === 'string') {
         return cached;
     }
 
@@ -519,10 +519,11 @@ ANALYSIS REQUIREMENTS:
 3. Apply advanced trading mathematics and portfolio theory
 4. Determine optimal bet sizing using Kelly Criterion
 5. Provide exact confidence score (0-100)
+6. If confidence < 70, return "No Mispricing Found"
 
 RESPONSE FORMAT:
-If confidence >= 75: Return "CONFIDENCE: [score]% | RECOMMENDATION: [BET YES/BET NO] up to [price]¢ | REASON: [brief explanation in 150 chars max]"
-If confidence < 75: Return exactly "No mispricing found"
+If confidence >= 70: Return "CONFIDENCE: [score]% | RECOMMENDATION: [BET YES/BET NO] up to [price]¢ | REASON: [brief explanation in 150 chars max]"
+If confidence < 70: Return exactly "No Mispricing Found"
 
 Be mathematically rigorous. Use only your knowledge base.`;
 
@@ -556,8 +557,7 @@ Be mathematically rigorous. Use only your knowledge base.`;
         const rawResponse = data.choices[0].message.content.trim();
         console.log(`Raw Grok response for ${market.ticker}:`, rawResponse);
 
-        // Ensure we always return a string
-        let result = String(rawResponse);
+        let result = rawResponse;
         
         // Validate the response format
         if (result.includes('CONFIDENCE:')) {
@@ -566,23 +566,23 @@ Be mathematically rigorous. Use only your knowledge base.`;
             if (confMatch) {
                 const confidence = parseInt(confMatch[1]);
                 if (confidence < 75) {
-                    result = 'No mispricing found';
+                    result = 'No Mispricing Found';
                 }
             }
-        } else if (!result.includes('No mispricing found')) {
+        } else if (!result.includes('No Mispricing Found')) {
             // If response doesn't match expected format, default to no mispricing
-            result = 'No mispricing found';
+            result = 'No Mispricing Found';
         }
 
         // Ensure response doesn't exceed 200 characters
-        if (result.length > 200 && result !== 'No mispricing found') {
+        if (result.length > 200 && result !== 'No Mispricing Found') {
             result = result.substring(0, 197) + '...';
         }
 
         // Final safety check to ensure we're returning a string
         if (typeof result !== 'string') {
             console.error('Non-string result detected:', typeof result, result);
-            result = 'No mispricing found';
+            result = 'No Mispricing Found';
         }
 
         await cacheMispricing(ticker, result);
@@ -590,7 +590,7 @@ Be mathematically rigorous. Use only your knowledge base.`;
 
     } catch (error) {
         console.error('Error in Grok mispricing analysis:', error);
-        return 'No mispricing found';
+        return 'No Mispricing Found';
     }
 }
 
