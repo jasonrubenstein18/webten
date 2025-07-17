@@ -23,7 +23,8 @@ const CONFIG = {
     BATCH_DELAY: 500, // Delay between batches in milliseconds (reduced from 1000)
     MAX_STORAGE_SIZE: 5 * 1024 * 1024, // 5MB storage limit
     MAX_RETRY_ATTEMPTS: 3,
-    RETRY_DELAY_BASE: 1000 // Base delay for exponential backoff
+    RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
+    MIN_RELEVANCE_SCORE: 40 // Minimum relevance score for markets to be returned
 };
 
 // Fetch events from Kalshi API with pagination support
@@ -513,7 +514,11 @@ async function findRelevantMarkets(pageContent, markets, progressCallback = null
         }
         
         // Use larger batch size and fewer batches for efficiency
-        const basePromptTokens = estimateTokens(`Given the following webpage content and list of prediction markets, identify which markets are most relevant to the content. Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
+        const basePromptTokens = estimateTokens(`Given the following webpage content and list of prediction markets, 
+            identify which markets are most relevant to the content. Return ONLY a JSON array of the top 5-8 most 
+            relevant markets with their relevance scores. The relevance score is a number between 0 and 100, where 100 is the most relevant. 
+            It is essential to take the relevance score seriously. If a market has nothing to do with the content, it should have a relevance score of 0. If the market is 
+            exactly the same as the content, it should have a relevance score of 100. If a market is regarding the same topic or broader industry it should have a relevance score about 50.
 
 WEBPAGE CONTENT:
 Title: ${pageContent.title}
@@ -530,7 +535,7 @@ Return ONLY a JSON array in this exact format:
   }
 ]
 
-Only include markets with relevance score 40 or higher. If no markets are highly relevant, return an empty array.`);
+Only include markets with relevance score ${CONFIG.MIN_RELEVANCE_SCORE} or higher. If no markets are highly relevant, return an empty array.`) ;
         
         // Reserve tokens for response (1000) and safety margin (1000)
         const availableTokens = 16000 - basePromptTokens - 2000;
