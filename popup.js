@@ -418,11 +418,11 @@ function createRelevantMarketElement(market) {
                 <div class="pricing">
                     <div class="pricing-row">
                         <span class="label yes">Yes:</span>
-                        <span class="price">${formatPrice(sub.yes_bid)} / ${formatPrice(sub.yes_ask)}</span>
+                        <span class="price">${formatPrice(sub.yes_ask)}</span>
                     </div>
                     <div class="pricing-row">
                         <span class="label no">No:</span>
-                        <span class="price">${formatPrice(sub.no_bid)} / ${formatPrice(sub.no_ask)}</span>
+                        <span class="price">${formatPrice(sub.no_ask)}</span>
                     </div>
                 </div>
                 <div class="sub-details">

@@ -9,7 +9,7 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://demo-api.kalshi.co/*",
+    "https://api.elections.kalshi.com/*",
     "https://kalshi.com/*",
     "https://polymarket.com/*",
     "https://api.openai.com/*"

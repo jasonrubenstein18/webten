@@ -2,7 +2,7 @@
 console.log('Market Suggestion Extension: Background script loaded');
 
 // Kalshi API configuration
-const BASE = 'https://demo-api.kalshi.co';
+const BASE = 'https://api.elections.kalshi.com';
 const KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
 
 // OpenAI API configuration
