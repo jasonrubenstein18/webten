@@ -644,3 +644,83 @@ header h1 {
 .content::-webkit-scrollbar-thumb:hover {
     background: #a1a1a6;
 }
+
+.sub-markets {
+    margin: 12px 0;
+}
+
+.sub-market {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid #e5e5ea;
+}
+
+.sub-market:last-child {
+    margin-bottom: 0;
+}
+
+.sub-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 8px;
+}
+
+.pricing {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pricing-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.label.yes {
+    color: #34c759;
+}
+
+.label.no {
+    color: #ff3b30;
+}
+
+.price {
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d1d1f;
+}
+
+.sub-details {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #86868b;
+}
+
+.sub-ticker {
+    background: #f5f5f7;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.volume {
+    font-weight: 500;
+}
+
+.no-pricing {
+    text-align: center;
+    color: #86868b;
+    font-size: 13px;
+    padding: 12px;
+}

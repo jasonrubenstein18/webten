@@ -402,12 +402,49 @@ function createRelevantMarketElement(market) {
     const baseUrl = 'https://kalshi.com/events/';
     const marketUrl = `${baseUrl}${market.series_ticker || market.ticker}`;
     
+    // Format functions
+    const formatPrice = (price) => price != null ? `${price}¢` : '—';
+    const formatVolume = (vol) => {
+        if (!vol) return '0';
+        return vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : vol.toString();
+    };
+    
+    // Build sub-markets HTML
+    let subMarketsHTML = '';
+    if (market.subMarkets && market.subMarkets.length > 0) {
+        subMarketsHTML = market.subMarkets.map(sub => `
+            <div class="sub-market">
+                <div class="sub-title">${escapeHtml(sub.title)}</div>
+                <div class="pricing">
+                    <div class="pricing-row">
+                        <span class="label yes">Yes:</span>
+                        <span class="price">${formatPrice(sub.yes_bid)} / ${formatPrice(sub.yes_ask)}</span>
+                    </div>
+                    <div class="pricing-row">
+                        <span class="label no">No:</span>
+                        <span class="price">${formatPrice(sub.no_bid)} / ${formatPrice(sub.no_ask)}</span>
+                    </div>
+                </div>
+                <div class="sub-details">
+                    <span class="sub-ticker">${escapeHtml(sub.ticker)}</span>
+                    <span class="volume">Vol: ${formatVolume(sub.volume_24h)}</span>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        // Fallback if no sub-markets
+        subMarketsHTML = '<div class="no-pricing">Pricing data unavailable</div>';
+    }
+    
     marketDiv.innerHTML = `
         <div class="market-header">
             <div class="market-title">
                 ${escapeHtml(market.title)}
             </div>
             <div class="market-status open">OPEN</div>
+        </div>
+        <div class="sub-markets">
+            ${subMarketsHTML}
         </div>
         <div class="market-details">
             <div class="market-ticker">${escapeHtml(market.ticker)}</div>
@@ -421,35 +458,15 @@ function createRelevantMarketElement(market) {
         </div>
     `;
     
-    // Make the entire card clickable (except for the copy button)
+    // Event listeners (existing)
     marketDiv.addEventListener('click', (e) => {
-        // Don't trigger if clicking the copy button
-        if (e.target.closest('.copy-btn')) {
-            return;
-        }
-        
-        console.log('Opening relevant market URL:', marketUrl);
-        
-        // Send message to background script to open URL
-        chrome.runtime.sendMessage({ 
-            action: 'openMarket', 
-            url: marketUrl 
-        }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error('Error opening market:', chrome.runtime.lastError);
-            } else {
-                console.log('Market opened successfully');
-            }
-        });
+        if (e.target.closest('.copy-btn')) return;
+        chrome.runtime.sendMessage({ action: 'openMarket', url: marketUrl });
     });
     
-    // Add hover effect cursor
-    marketDiv.style.cursor = 'pointer';
-    
-    // Add event listener for copy button
     const copyBtn = marketDiv.querySelector('.copy-btn');
     copyBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent card click when copying
+        e.stopPropagation();
         copyTicker(market.ticker);
     });
     

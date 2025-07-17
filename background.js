@@ -486,6 +486,69 @@ Summary (400 characters max):`;
     }
 }
 
+async function fetchEventMarkets(eventTicker) {
+    try {
+        console.log(`Fetching markets for event: ${eventTicker}`);
+        
+        let allMarkets = [];
+        let cursor = null;
+        let pageCount = 0;
+        const limit = 50; // Reasonable limit per page
+        
+        do {
+            pageCount++;
+            let path = `/trade-api/v2/markets?event_ticker=${eventTicker}&limit=${limit}`;
+            if (cursor) {
+                path += `&cursor=${encodeURIComponent(cursor)}`;
+            }
+            
+            const response = await fetch(`${BASE}${path}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.markets && Array.isArray(data.markets)) {
+                allMarkets = allMarkets.concat(data.markets);
+            }
+            
+            cursor = data.cursor;
+            
+        } while (cursor);
+        
+        // Process markets to extract relevant data
+        const processedMarkets = allMarkets.map(market => ({
+            ticker: market.ticker,
+            title: market.title,
+            subtitle: market.subtitle || '',
+            yes_bid: market.yes_bid,
+            yes_ask: market.yes_ask,
+            no_bid: market.no_bid,
+            no_ask: market.no_ask,
+            last_price: market.last_price,
+            volume: market.volume || 0,
+            volume_24h: market.volume_24h || 0,
+            open_interest: market.open_interest || 0,
+            close_time: market.close_time,
+            status: market.status
+        }));
+        
+        console.log(`Fetched ${processedMarkets.length} markets for event ${eventTicker}`);
+        return processedMarkets;
+        
+    } catch (error) {
+        console.error(`Error fetching markets for ${eventTicker}:`, error);
+        return [];
+    }
+}
+
 // Find relevant markets using AI-powered relevance analysis with optimized batching
 async function findRelevantMarkets(pageContent, markets, progressCallback = null) {
     const startTime = Date.now();
@@ -839,6 +902,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         marketsResult.markets
                     );
                     
+                    // Add fetching of sub-markets for relevant events
+                    for (let event of relevantResult.markets) {
+                        event.subMarkets = await fetchEventMarkets(event.ticker);
+                    }
+
                     sendResponse(relevantResult);
                     
                 } catch (error) {
