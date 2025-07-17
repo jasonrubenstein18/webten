@@ -429,6 +429,7 @@ function createRelevantMarketElement(market) {
                     <span class="sub-ticker">${escapeHtml(sub.ticker)}</span>
                     <span class="volume">Vol: ${formatVolume(sub.volume_24h)}</span>
                 </div>
+                ${sub.mispricing && sub.mispricing !== 'No mispricing detected' && sub.mispricing !== 'Error analyzing mispricing' ? `<div class="mispricing-analysis">${escapeHtml(sub.mispricing)}</div>` : ''}
             </div>
         `).join('');
     } else {

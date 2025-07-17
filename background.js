@@ -9,6 +9,11 @@ const KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
 const OPENAI_API_KEY = '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';
 const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
+// Grok API configuration
+const GROK_API_KEY = 'xai-JGM7BR2dAtEmNkCka0UPsJ3ANql1UZrs5gtSXRl5Lxd6y0k5A0FUhAiV6j4nRr8cYD4o5hIXYqXh6y3t';
+const GROK_BASE_URL = 'https://api.x.ai/v1';
+const GROK_MODEL = 'grok-3-latest';
+
 // Configuration
 const CONFIG = {
     MAX_PAGES: 20,        // Fetch up to 20 pages (4000 markets max)
@@ -486,6 +491,58 @@ Summary (400 characters max):`;
     }
 }
 
+// New function for Grok mispricing analysis
+async function analyzeMarketMispricing(market, contentSummary) {
+    const prompt = `Based on all the information accessible to you, do you think this market is mispriced on the ask price available for either Yes or No?
+    Rate the mispricing on a confidence scale of 0 (not very confident its mispriced) to 100 (absolutely certain its mispriced). If the judgement on whether its mispriced is scored a 75 or higher we will show that to the user. 
+    If not then we will simply return a blank or no mispricing found placeholder. 
+
+Market Details:
+Title: ${market.title}
+Subtitle: ${market.subtitle}
+Yes Ask: ${market.yes_ask}
+No Ask: ${market.no_ask}
+Last Price: ${market.last_price}
+Volume: ${market.volume}
+
+Page Content Summary: ${contentSummary}
+
+If the confidence is 75 or higher, please return a short 300 character or fewer summary of why and state what the right pricing would be. If no, return nothing here.`;
+
+    try {
+        console.log(`Analyzing mispricing for market: ${market.ticker}`);
+
+        const response = await fetch(`${GROK_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROK_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: GROK_MODEL,
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.5,
+                max_tokens: 200
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from Grok API');
+        }
+
+        return data.choices[0].message.content.trim();
+    } catch (error) {
+        console.error('Error in Grok mispricing analysis:', error);
+        return 'Error analyzing mispricing';
+    }
+}
+
 async function fetchEventMarkets(eventTicker) {
     try {
         console.log(`Fetching markets for event: ${eventTicker}`);
@@ -905,6 +962,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     // Add fetching of sub-markets for relevant events
                     for (let event of relevantResult.markets) {
                         event.subMarkets = await fetchEventMarkets(event.ticker);
+                    }
+
+                    // Add Grok mispricing analysis for each sub-market
+                    for (let event of relevantResult.markets) {
+                        for (let subMarket of event.subMarkets) {
+                            subMarket.mispricing = await analyzeMarketMispricing(subMarket, relevantResult.contentSummary);
+                        }
                     }
 
                     sendResponse(relevantResult);
