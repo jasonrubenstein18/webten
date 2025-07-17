@@ -17,7 +17,7 @@ const CONFIG = {
     MAX_MARKETS_FOR_ANALYSIS: 4000, // Increased limit for thorough analysis
     API_TIMEOUT: 30000, // 30 second timeout for individual API calls
     ANALYSIS_TIMEOUT: 180000, // 3 minute timeout for overall analysis
-    EMBEDDING_MODEL: 'text-embedding-ada-002', // OpenAI embedding model
+    EMBEDDING_MODEL: 'text-embedding-3-small', // OpenAI embedding model
     EMBEDDING_BATCH_SIZE: 20, // Number of embeddings to process at once
     EMBEDDING_CACHE_EXPIRY: 24 * 60 * 60 * 1000, // 24 hours
     BATCH_DELAY: 500, // Delay between batches in milliseconds (reduced from 1000)
