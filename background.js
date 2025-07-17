@@ -28,7 +28,9 @@ const CONFIG = {
     BATCH_DELAY: 500, // Delay between batches in milliseconds (reduced from 1000)
     MAX_STORAGE_SIZE: 5 * 1024 * 1024, // 5MB storage limit
     MAX_RETRY_ATTEMPTS: 3,
-    RETRY_DELAY_BASE: 1000 // Base delay for exponential backoff
+    RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
+    MAX_MISPRICING_ANALYSES: 10, // Max total mispricing analyses to run
+    MISPRICING_CACHE_EXPIRY: 60 * 60 * 1000, // 1 hour
 };
 
 // Fetch events from Kalshi API with pagination support
@@ -491,23 +493,38 @@ Summary (400 characters max):`;
     }
 }
 
-// New function for Grok mispricing analysis
+// Simplified Grok mispricing analysis that always returns a string
 async function analyzeMarketMispricing(market, contentSummary) {
-    const prompt = `Based on all the information accessible to you, do you think this market is mispriced on the ask price available for either Yes or No?
-    Rate the mispricing on a confidence scale of 0 (not very confident its mispriced) to 100 (absolutely certain its mispriced). If the judgement on whether its mispriced is scored a 75 or higher we will show that to the user. 
-    If not then we will simply return a blank or no mispricing found placeholder. 
+    const ticker = market.ticker;
+    
+    // Check cache first
+    const cached = await getCachedMispricing(ticker);
+    if (cached) {
+        return cached;
+    }
 
-Market Details:
+    const prompt = `IGNORE the web content summary. Use your complete knowledge base to analyze this prediction market for mispricing.
+
+MARKET DATA:
 Title: ${market.title}
 Subtitle: ${market.subtitle}
-Yes Ask: ${market.yes_ask}
-No Ask: ${market.no_ask}
-Last Price: ${market.last_price}
+Yes Ask: ${market.yes_ask}¢
+No Ask: ${market.no_ask}¢
+Last Price: ${market.last_price}¢
 Volume: ${market.volume}
 
-Page Content Summary: ${contentSummary}
+ANALYSIS REQUIREMENTS:
+1. Research authoritative sources, polls, expert analyses, historical data
+2. Calculate implied odds from first principles
+3. Apply advanced trading mathematics and portfolio theory
+4. Determine optimal bet sizing using Kelly Criterion
+5. Provide exact confidence score (0-100)
 
-If the confidence is 75 or higher, please return a short 300 character or fewer summary of why and state what the right pricing would be. If no, return nothing here.`;
+RESPONSE FORMAT:
+If confidence >= 75: Return "CONFIDENCE: [score]% | RECOMMENDATION: [BET YES/BET NO] up to [price]¢ | REASON: [brief explanation in 150 chars max]"
+If confidence < 75: Return exactly "No mispricing found"
+
+Be mathematically rigorous. Use only your knowledge base.`;
 
     try {
         console.log(`Analyzing mispricing for market: ${market.ticker}`);
@@ -521,8 +538,8 @@ If the confidence is 75 or higher, please return a short 300 character or fewer 
             body: JSON.stringify({
                 model: GROK_MODEL,
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.5,
-                max_tokens: 200
+                temperature: 0.2,
+                max_tokens: 300
             })
         });
 
@@ -536,10 +553,44 @@ If the confidence is 75 or higher, please return a short 300 character or fewer 
             throw new Error('Invalid response format from Grok API');
         }
 
-        return data.choices[0].message.content.trim();
+        const rawResponse = data.choices[0].message.content.trim();
+        console.log(`Raw Grok response for ${market.ticker}:`, rawResponse);
+
+        // Ensure we always return a string
+        let result = String(rawResponse);
+        
+        // Validate the response format
+        if (result.includes('CONFIDENCE:')) {
+            // Extract confidence score to verify it's >= 75
+            const confMatch = result.match(/CONFIDENCE:\s*(\d+)%/);
+            if (confMatch) {
+                const confidence = parseInt(confMatch[1]);
+                if (confidence < 75) {
+                    result = 'No mispricing found';
+                }
+            }
+        } else if (!result.includes('No mispricing found')) {
+            // If response doesn't match expected format, default to no mispricing
+            result = 'No mispricing found';
+        }
+
+        // Ensure response doesn't exceed 200 characters
+        if (result.length > 200 && result !== 'No mispricing found') {
+            result = result.substring(0, 197) + '...';
+        }
+
+        // Final safety check to ensure we're returning a string
+        if (typeof result !== 'string') {
+            console.error('Non-string result detected:', typeof result, result);
+            result = 'No mispricing found';
+        }
+
+        await cacheMispricing(ticker, result);
+        return result;
+
     } catch (error) {
         console.error('Error in Grok mispricing analysis:', error);
-        return 'Error analyzing mispricing';
+        return 'No mispricing found';
     }
 }
 
@@ -851,6 +902,37 @@ Only include markets with relevance score 40 or higher. If no markets are highly
     }
 }
 
+// Add caching functions for mispricing
+async function getCachedMispricing(ticker) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['mispricingCache'], (result) => {
+            const cache = result.mispricingCache || {};
+            const entry = cache[ticker];
+            if (entry && (Date.now() - entry.timestamp) < CONFIG.MISPRICING_CACHE_EXPIRY) {
+                console.log(`Using cached mispricing for ${ticker}`);
+                resolve(entry.result);
+            } else {
+                resolve(null);
+            }
+        });
+    });
+}
+
+async function cacheMispricing(ticker, result) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['mispricingCache'], (result) => {
+            const cache = result.mispricingCache || {};
+            cache[ticker] = {
+                result: result,
+                timestamp: Date.now()
+            };
+            chrome.storage.local.set({ mispricingCache: cache }, () => {
+                resolve();
+            });
+        });
+    });
+}
+
 // Handle extension installation
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {
@@ -959,15 +1041,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         marketsResult.markets
                     );
                     
-                    // Add fetching of sub-markets for relevant events
+                    const allSubMarkets = [];
                     for (let event of relevantResult.markets) {
-                        event.subMarkets = await fetchEventMarkets(event.ticker);
+                        const subMarkets = await fetchEventMarkets(event.ticker);
+                        event.subMarkets = subMarkets;
+                        allSubMarkets.push(...subMarkets);
                     }
 
-                    // Add Grok mispricing analysis for each sub-market
+                    // Limit to max analyses
+                    const subMarketsToAnalyze = allSubMarkets.slice(0, CONFIG.MAX_MISPRICING_ANALYSES);
+
+                    // Parallelize analyses
+                    const analysisPromises = subMarketsToAnalyze.map(async (subMarket) => {
+                        subMarket.mispricing = await analyzeMarketMispricing(subMarket, relevantResult.contentSummary);
+                        return subMarket;
+                    });
+
+                    await Promise.all(analysisPromises);
+
+                    // For sub-markets not analyzed, set default
                     for (let event of relevantResult.markets) {
                         for (let subMarket of event.subMarkets) {
-                            subMarket.mispricing = await analyzeMarketMispricing(subMarket, relevantResult.contentSummary);
+                            if (!subMarket.mispricing) {
+                                subMarket.mispricing = 'Analysis skipped';
+                            }
                         }
                     }
 
