@@ -212,53 +212,14 @@ function isContentElement(element) {
     return true;
 }
 
-// Function to analyze content and suggest relevant market topics
-function analyzeContentForMarkets(content) {
-    const suggestions = [];
-    const text = `${content.title} ${content.metaDescription} ${content.text}`.toLowerCase();
-    
-    // Define market categories and keywords
-    const marketCategories = {
-        politics: ['election', 'president', 'congress', 'senate', 'politics', 'campaign', 'vote', 'democrat', 'republican'],
-        crypto: ['bitcoin', 'ethereum', 'crypto', 'cryptocurrency', 'blockchain', 'defi', 'nft'],
-        sports: ['nfl', 'nba', 'mlb', 'nhl', 'super bowl', 'world series', 'playoffs', 'championship'],
-        tech: ['machine learning', 'automation', 'meta', 'apple', 'google', 'tesla', 'amazon', 'microsoft'],
-        economy: ['inflation', 'recession', 'gdp', 'unemployment', 'fed', 'interest rates', 'stock market'],
-        climate: ['climate', 'global warming', 'carbon', 'renewable energy', 'solar', 'wind', 'electric vehicle']
-    };
-    
-    // Check which categories match the content
-    const matchedCategories = [];
-    for (const [category, keywords] of Object.entries(marketCategories)) {
-        const matches = keywords.filter(keyword => text.includes(keyword));
-        if (matches.length > 0) {
-            matchedCategories.push({
-                category,
-                matches,
-                relevance: matches.length
-            });
-        }
-    }
-    
-    // Sort by relevance
-    matchedCategories.sort((a, b) => b.relevance - a.relevance);
-    
-    return {
-        categories: matchedCategories,
-        confidence: matchedCategories.length > 0 ? Math.min(matchedCategories[0].relevance * 0.2, 1) : 0
-    };
-}
-
 // Listen for messages from popup or background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'extractContent') {
+    if (request.action === 'extractContent' || request.action === 'market-suggestions:extractContent') {
         const content = extractPageContent();
-        const analysis = analyzeContentForMarkets(content);
         
         sendResponse({
             success: true,
-            content,
-            analysis
+            content
         });
         return true;
     }

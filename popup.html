@@ -3,64 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market Suggestions</title>
+    <title>Webten</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Market Suggestions</h1>
-            <div class="platform-tabs">
-                <button id="kalshi-btn" class="tab-btn active">Kalshi</button>
-                <button id="polymarket-btn" class="tab-btn">Polymarket</button>
-            </div>
+            <h1>Webten</h1>
+            <p class="subtitle">Choose your analysis mode</p>
         </header>
         
-        <div class="action-buttons">
-            <button id="analyze-page-btn" class="action-btn primary">
-                Analyze Page
+        <div class="navigation-options">
+            <button id="market-suggestions-btn" class="nav-btn primary">
+                <div class="nav-content">
+                    <h3>Market Suggestions</h3>
+                    <p>Find relevant markets for page content</p>
+                </div>
             </button>
-            <button id="all-markets-btn" class="action-btn secondary">
-                All Markets
+            
+            <button id="understand-content-btn" class="nav-btn secondary">
+                <div class="nav-content">
+                    <h3>Understand Content</h3>
+                    <p>Deep content analysis (coming soon)</p>
+                </div>
             </button>
         </div>
         
-        <div class="content">
-            <div class="loading">
-                <div class="spinner"></div>
-                <div class="progress-container">
-                    <div class="progress-text">
-                        <span class="progress-message">Analyzing markets...</span>
-                        <span class="progress-percentage">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill"></div>
-                    </div>
-                    <div class="progress-details">Initializing analysis...</div>
-                </div>
-            </div>
-            
-            <div class="error" style="display: none;">
-                <div class="error-content">
-                    <h3>Unable to fetch data</h3>
-                    <p>Please check your connection and try again.</p>
-                </div>
-            </div>
-            
-            <div class="markets-container" style="display: none;">
-                <div class="analysis-info" style="display: none;">
-                    <div class="content-summary">
-                        <h3>Page Analysis</h3>
-                        <p class="summary-text"></p>
-                    </div>
-                </div>
-                
-                <div class="markets-header">
-                    <h2 id="markets-title">Active Events</h2>
-                    <div class="markets-count">0 open events</div>
-                </div>
-                <div class="markets-list"></div>
-            </div>
+        <div class="footer">
+            <p class="version">v1.0.0</p>
         </div>
     </div>
     

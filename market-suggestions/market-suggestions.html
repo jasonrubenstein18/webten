@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Suggestions</title>
+    <link rel="stylesheet" href="market-suggestions.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="back-button">
+                <button id="back-btn" class="btn-back">← Back</button>
+            </div>
+            <h1>Market Suggestions</h1>
+            <div class="platform-tabs">
+                <button id="kalshi-btn" class="tab-btn active">Kalshi</button>
+                <button id="polymarket-btn" class="tab-btn">Polymarket</button>
+            </div>
+        </header>
+        
+        <div class="action-buttons">
+            <button id="analyze-page-btn" class="action-btn primary">
+                Analyze Page
+            </button>
+            <button id="all-markets-btn" class="action-btn secondary">
+                All Markets
+            </button>
+        </div>
+        
+        <div class="content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div class="progress-container">
+                    <div class="progress-text">
+                        <span class="progress-message">Analyzing markets...</span>
+                        <span class="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-details">Initializing analysis...</div>
+                </div>
+            </div>
+            
+            <div class="error" style="display: none;">
+                <div class="error-content">
+                    <h3>Unable to fetch data</h3>
+                    <p>Please check your connection and try again.</p>
+                </div>
+            </div>
+            
+            <div class="markets-container" style="display: none;">
+                <div class="analysis-info" style="display: none;">
+                    <div class="content-summary">
+                        <h3>Page Analysis</h3>
+                        <p class="summary-text"></p>
+                    </div>
+                </div>
+                
+                <div class="markets-header">
+                    <h2 id="markets-title">Active Events</h2>
+                    <div class="markets-count">0 open events</div>
+                </div>
+                <div class="markets-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="market-suggestions.js"></script>
+</body>
+</html>

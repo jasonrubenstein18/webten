@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Market Suggestions",
+  "name": "Webten",
   "version": "1.0.0",
   "description": "Reads webpage content and suggests relevant markets on Kalshi or Polymarket",
   "permissions": [
@@ -16,7 +16,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Market Suggestions"
+    "default_title": "Webten"
   },
   "content_scripts": [
     {
