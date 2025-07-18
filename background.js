@@ -508,6 +508,7 @@ async function analyzeMarketMispricing(market, contentSummary) {
 MARKET DATA:
 Title: ${market.title}
 Subtitle: ${market.subtitle}
+Option: ${market.yes_sub_title || 'N/A'}
 Yes Ask: ${market.yes_ask}¢
 No Ask: ${market.no_ask}¢
 Last Price: ${market.last_price}¢
@@ -636,6 +637,9 @@ async function fetchEventMarkets(eventTicker) {
             ticker: market.ticker,
             title: market.title,
             subtitle: market.subtitle || '',
+            yes_sub_title: market.yes_sub_title || '',
+            no_sub_title: market.no_sub_title || '',
+            market_type: market.market_type || 'binary',
             yes_bid: market.yes_bid,
             yes_ask: market.yes_ask,
             no_bid: market.no_bid,
@@ -645,7 +649,9 @@ async function fetchEventMarkets(eventTicker) {
             volume_24h: market.volume_24h || 0,
             open_interest: market.open_interest || 0,
             close_time: market.close_time,
-            status: market.status
+            status: market.status,
+            rules_primary: market.rules_primary || '',
+            response_price_units: market.response_price_units || 'usd_cent'
         }));
         
         console.log(`Fetched ${processedMarkets.length} markets for event ${eventTicker}`);

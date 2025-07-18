@@ -414,7 +414,7 @@ function createRelevantMarketElement(market) {
     if (market.subMarkets && market.subMarkets.length > 0) {
         subMarketsHTML = market.subMarkets.map(sub => `
             <div class="sub-market">
-                <div class="sub-title">${escapeHtml(sub.title)}</div>
+                <div class="sub-title">${escapeHtml(sub.yes_sub_title || sub.title)}</div>
                 <div class="pricing">
                     <div class="pricing-row">
                         <span class="label yes">Yes:</span>
@@ -429,7 +429,7 @@ function createRelevantMarketElement(market) {
                     <span class="sub-ticker">${escapeHtml(sub.ticker)}</span>
                     <span class="volume">Vol: ${formatVolume(sub.volume_24h)}</span>
                 </div>
-                ${sub.mispricing && sub.mispricing !== 'No mispricing detected' && sub.mispricing !== 'Error analyzing mispricing' ? `<div class="mispricing-analysis">${escapeHtml(sub.mispricing)}</div>` : ''}
+                ${sub.mispricing && sub.mispricing !== 'No mispricing detected' && sub.mispricing !== 'Error analyzing mispricing' && sub.mispricing !== 'No Mispricing Found' ? `<div class="mispricing-analysis">${escapeHtml(sub.mispricing)}</div>` : ''}
             </div>
         `).join('');
     } else {
