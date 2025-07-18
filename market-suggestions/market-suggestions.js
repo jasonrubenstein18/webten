@@ -2,7 +2,7 @@ console.log('Market Suggestion Extension: Popup script loaded');
 
 let currentPlatform = 'kalshi';
 let marketsData = [];
-let currentMode = 'relevant'; // 'all' or 'relevant' - default to page analysis
+// Only one mode now - page analysis
 
 // Cache DOM elements
 const elements = {};
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.kalshiBtn = document.getElementById('kalshi-btn');
     elements.polymarketBtn = document.getElementById('polymarket-btn');
     elements.analyzePageBtn = document.getElementById('analyze-page-btn');
-    elements.allMarketsBtn = document.getElementById('all-markets-btn');
+
     elements.loadingDiv = document.querySelector('.loading');
     elements.errorDiv = document.querySelector('.error');
     elements.marketsContainer = document.querySelector('.markets-container');
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.summaryText = document.querySelector('.summary-text');
     
     if (!elements.kalshiBtn || !elements.polymarketBtn || !elements.marketsContainer || 
-        !elements.analyzePageBtn || !elements.allMarketsBtn) {
+        !elements.analyzePageBtn) {
         console.error('Required DOM elements not found');
         showError('Interface error: Required elements missing');
         return;
@@ -54,7 +54,6 @@ function setupEventListeners() {
     
     // Action buttons
     elements.analyzePageBtn.addEventListener('click', () => analyzeCurrentPage());
-    elements.allMarketsBtn.addEventListener('click', () => showAllMarkets());
 }
 
 // Set up listener for real progress updates from background script
@@ -230,7 +229,6 @@ function loadKalshiMarkets() {
 
 function analyzeCurrentPage() {
     console.log('Analyzing current page for relevant markets...');
-    currentMode = 'relevant';
     
     // Update button states
     updateActionButtonStates();
@@ -318,25 +316,7 @@ function updateLoadingProgress(message, percentage = 0, details = '') {
     }
 }
 
-function showAllMarkets() {
-    console.log('Showing all markets...');
-    currentMode = 'all';
-    
-    // Update button states
-    updateActionButtonStates();
-    
-    // Hide analysis info
-    elements.analysisInfo.style.display = 'none';
-    
-    // Update title and show all markets
-    elements.marketsTitle.textContent = 'Active Events';
-    
-    if (marketsData && marketsData.length > 0) {
-        showMarkets(marketsData);
-    } else {
-        loadKalshiMarkets();
-    }
-}
+
 
 function showRelevantMarkets(markets, contentSummary, totalAnalyzed) {
     console.log(`Showing ${markets.length} relevant markets out of ${totalAnalyzed} analyzed`);
@@ -367,7 +347,7 @@ function showRelevantMarkets(markets, contentSummary, totalAnalyzed) {
         elements.marketsList.innerHTML = `
             <div class="no-markets">
                 No relevant markets found for this page content.<br>
-                <small>Try clicking "All Markets" to see all available events.</small>
+                <small>Try analyzing a different page or check back later for new events.</small>
             </div>
         `;
         return;
@@ -460,12 +440,9 @@ function createRelevantMarketElement(market) {
 }
 
 function updateActionButtonStates() {
-    // Update button visual states based on current mode
-    elements.analyzePageBtn.classList.toggle('primary', currentMode === 'relevant');
-    elements.analyzePageBtn.classList.toggle('secondary', currentMode !== 'relevant');
-    
-    elements.allMarketsBtn.classList.toggle('primary', currentMode === 'all');
-    elements.allMarketsBtn.classList.toggle('secondary', currentMode !== 'all');
+    // The analyze page button should always be primary since it's the only action
+    elements.analyzePageBtn.classList.add('primary');
+    elements.analyzePageBtn.classList.remove('secondary');
 }
 
 function showPolymarketComingSoon() {
