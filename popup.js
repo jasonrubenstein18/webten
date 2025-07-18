@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     setupEventListeners();
+    setupProgressListener(); // Set up real progress listening
     updateActionButtonStates(); // Initialize button states
     analyzeCurrentPage(); // Auto-analyze the current page on startup
 });
@@ -45,6 +46,21 @@ function setupEventListeners() {
     // Action buttons
     elements.analyzePageBtn.addEventListener('click', () => analyzeCurrentPage());
     elements.allMarketsBtn.addEventListener('click', () => showAllMarkets());
+}
+
+// Set up listener for real progress updates from background script
+function setupProgressListener() {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'progressUpdate') {
+            const progress = request.progress;
+            updateLoadingProgress(
+                progress.message,
+                progress.percentage,
+                progress.details
+            );
+            return true;
+        }
+    });
 }
 
 function switchPlatform(platform) {
@@ -212,56 +228,19 @@ function analyzeCurrentPage() {
     
     showLoading();
     
-    // Phase 1: Start with extracting page content (random between 3-8%)
-    const initialProgress = Math.floor(Math.random() * 6) + 3;
-    updateLoadingProgress('Extracting Page Content', initialProgress, 'Reading webpage content and filtering out ads...');
+    // Start with initial progress
+    updateLoadingProgress('Starting analysis...', 0, 'Initializing page analysis...');
     
     // Set up timeout for the entire analysis process (can take up to 2 minutes for thorough analysis)
     const analysisTimeout = setTimeout(() => {
-        clearInterval(progressInterval);
         console.error('Analysis timeout after 2 minutes');
         showError('Analysis timed out after 2 minutes. Please try again or check your internet connection.');
     }, 120000); // 2 minute timeout to match background.js ANALYSIS_TIMEOUT
     
-    // Track progress through different phases with random percentages
-    let currentPhase = 1;
-    const totalPhases = 5;
-    
-    // Generate random progress percentages within realistic ranges
-    function getRandomProgress(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-    
-    // Simulate progress updates for better UX
-    const progressInterval = setInterval(() => {
-        if (currentPhase === 1) {
-            const progress = getRandomProgress(12, 18);
-            updateLoadingProgress('Fetching Active Markets', progress, 'Connecting to Kalshi API to get latest markets...');
-            currentPhase = 2;
-        } else if (currentPhase === 2) {
-            const progress = getRandomProgress(28, 38);
-            updateLoadingProgress('Processing Markets', progress, 'Found markets, preparing for analysis...');
-            currentPhase = 3;
-        } else if (currentPhase === 3) {
-            const progress = getRandomProgress(55, 65);
-            updateLoadingProgress('Analyzing Content', progress, 'Finding relevant markets for this content...');
-            currentPhase = 4;
-        } else if (currentPhase === 4) {
-            const progress = getRandomProgress(78, 88);
-            updateLoadingProgress('Generating Summary', progress, 'Creating content summary...');
-            currentPhase = 5;
-        }
-    }, 2000);
-    
     // Send message to background script to analyze page content
     chrome.runtime.sendMessage({ action: 'analyzePageContent' }, (response) => {
-        // Clear the progress interval and timeout
-        clearInterval(progressInterval);
+        // Clear the timeout
         clearTimeout(analysisTimeout);
-        
-        // Final progress update with random percentage
-        const finalProgress = Math.floor(Math.random() * 4) + 92; // 92-95%
-        updateLoadingProgress('Finalizing Results', finalProgress, 'Preparing market suggestions...');
         
         console.log('Received analysis response:', response);
         
@@ -299,9 +278,6 @@ function analyzeCurrentPage() {
             showError('Invalid analysis data received. Please try again.');
             return;
         }
-        
-        // Complete progress
-        updateLoadingProgress('Complete!', 100, 'Analysis finished successfully.');
         
         // Small delay to show completion before showing results
         setTimeout(() => {

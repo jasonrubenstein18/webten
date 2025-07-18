@@ -1030,7 +1030,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
                 
                 try {
-                    // Fetch active markets
+                    // Send progress update function
+                    const sendProgress = (progressData) => {
+                        // Send progress updates directly to popup
+                        chrome.runtime.sendMessage({
+                            action: 'progressUpdate',
+                            progress: progressData
+                        }).catch(() => {
+                            // Popup might be closed, ignore errors
+                        });
+                    };
+                    
+                    // Step 1: Extract content (already done)
+                    sendProgress({
+                        phase: 'content',
+                        current: 1,
+                        total: 1,
+                        percentage: 10,
+                        message: 'Extracting page content...',
+                        details: 'Reading webpage content and filtering out ads...'
+                    });
+                    
+                    // Step 2: Fetch active markets
+                    sendProgress({
+                        phase: 'fetching',
+                        current: 1,
+                        total: 1,
+                        percentage: 20,
+                        message: 'Fetching active markets...',
+                        details: 'Connecting to Kalshi API to get latest markets...'
+                    });
+                    
                     const marketsResult = await fetchKalshiMarkets();
                     if (!marketsResult.success) {
                         sendResponse({
@@ -1041,25 +1071,92 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         return;
                     }
                     
-                    // Find relevant markets using semantic matching
+                    sendProgress({
+                        phase: 'processing',
+                        current: 1,
+                        total: 1,
+                        percentage: 35,
+                        message: 'Processing markets...',
+                        details: `Found ${marketsResult.markets.length} markets, preparing for analysis...`
+                    });
+                    
+                    // Step 3: Find relevant markets using semantic matching with real progress
                     const relevantResult = await findRelevantMarkets(
                         contentResponse.content, 
-                        marketsResult.markets
+                        marketsResult.markets,
+                        (progressData) => {
+                            // Convert progress data to percentage (35-70% range)
+                            const percentage = 35 + (progressData.current / progressData.total) * 35;
+                            sendProgress({
+                                phase: progressData.phase,
+                                current: progressData.current,
+                                total: progressData.total,
+                                percentage: Math.round(percentage),
+                                message: progressData.message,
+                                details: 'Finding relevant markets for this content...'
+                            });
+                        }
                     );
                     
+                    sendProgress({
+                        phase: 'submarkets',
+                        current: 1,
+                        total: 1,
+                        percentage: 75,
+                        message: 'Fetching sub-markets...',
+                        details: 'Getting detailed market information...'
+                    });
+                    
+                    // Step 4: Fetch sub-markets
                     const allSubMarkets = [];
+                    let processedEvents = 0;
                     for (let event of relevantResult.markets) {
                         const subMarkets = await fetchEventMarkets(event.ticker);
                         event.subMarkets = subMarkets;
                         allSubMarkets.push(...subMarkets);
+                        
+                        processedEvents++;
+                        const percentage = 75 + (processedEvents / relevantResult.markets.length) * 10;
+                        sendProgress({
+                            phase: 'submarkets',
+                            current: processedEvents,
+                            total: relevantResult.markets.length,
+                            percentage: Math.round(percentage),
+                            message: 'Fetching sub-markets...',
+                            details: `Processing event ${processedEvents}/${relevantResult.markets.length}...`
+                        });
                     }
 
+                    // Step 5: Analyze mispricing
+                    sendProgress({
+                        phase: 'analysis',
+                        current: 1,
+                        total: 1,
+                        percentage: 85,
+                        message: 'Analyzing mispricing...',
+                        details: 'Running market analysis algorithms...'
+                    });
+                    
                     // Limit to max analyses
                     const subMarketsToAnalyze = allSubMarkets.slice(0, CONFIG.MAX_MISPRICING_ANALYSES);
 
-                    // Parallelize analyses
+                    // Parallelize analyses with progress tracking
+                    let completedAnalyses = 0;
                     const analysisPromises = subMarketsToAnalyze.map(async (subMarket) => {
                         subMarket.mispricing = await analyzeMarketMispricing(subMarket, relevantResult.contentSummary);
+                        completedAnalyses++;
+                        
+                        // Update progress (85-95% range)
+                        const percentage = 85 + (completedAnalyses / subMarketsToAnalyze.length) * 10;
+                        sendProgress({
+                            phase: 'mispricing',
+                            current: completedAnalyses,
+                            total: subMarketsToAnalyze.length,
+                            percentage: Math.round(percentage),
+                            message: 'Analyzing mispricing...',
+                            details: `Analyzed ${completedAnalyses}/${subMarketsToAnalyze.length} markets...`
+                        });
+                        
                         return subMarket;
                     });
 
@@ -1073,6 +1170,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             }
                         }
                     }
+
+                    // Final progress update
+                    sendProgress({
+                        phase: 'complete',
+                        current: 1,
+                        total: 1,
+                        percentage: 100,
+                        message: 'Complete!',
+                        details: 'Analysis finished successfully.'
+                    });
 
                     sendResponse(relevantResult);
                     
