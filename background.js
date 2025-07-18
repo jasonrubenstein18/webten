@@ -29,7 +29,7 @@ const CONFIG = {
     MAX_STORAGE_SIZE: 5 * 1024 * 1024, // 5MB storage limit
     MAX_RETRY_ATTEMPTS: 3,
     RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
-    MAX_MISPRICING_ANALYSES: 50, // Max total mispricing analyses to run
+    MAX_MISPRICING_ANALYSES: 100, // Max total mispricing analyses to run
     MISPRICING_CACHE_EXPIRY: 60 * 60 * 1000, // 1 hour
 };
 
