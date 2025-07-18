@@ -48,27 +48,240 @@ function handleLegacyMessage(request, sender, sendResponse) {
     return false;
 }
 
-// Handle understand content messages (placeholder)
+// Handle understand content messages
 function handleUnderstandContentMessage(request, sender, sendResponse) {
     console.log('Handling understand content message:', request.action);
     
     // Remove the prefix for processing
     const action = request.action.replace('understand-content:', '');
     
-    // Placeholder responses for understand content
     if (action === 'analyzeContent') {
-        sendResponse({
-            success: true,
-            message: 'Understand Content functionality coming soon!',
-            data: {}
+        console.log('Analyzing content for summarization...');
+        
+        // Helper function to send progress updates
+        const sendProgress = (progressData) => {
+            chrome.runtime.sendMessage({
+                action: 'understand-content:progressUpdate',
+                progress: progressData
+            }).catch(() => {
+                // Popup might be closed, ignore errors
+            });
+        };
+        
+        // Initial progress
+        sendProgress({
+            percentage: 5,
+            phase: 'Starting analysis...',
+            details: 'Initializing content analysis...'
         });
-        return false;
+        
+        // First get the page content from the content script
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (!tabs[0]) {
+                sendResponse({
+                    success: false,
+                    error: 'No active tab found'
+                });
+                return;
+            }
+            
+            sendProgress({
+                percentage: 10,
+                phase: 'Extracting content...',
+                details: 'Reading webpage content and filtering out ads...'
+            });
+            
+            chrome.tabs.sendMessage(tabs[0].id, { action: 'extractContent' }, async (contentResponse) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error extracting content:', chrome.runtime.lastError);
+                    sendResponse({
+                        success: false,
+                        error: 'Failed to extract page content. Make sure you are on a webpage.'
+                    });
+                    return;
+                }
+                
+                if (!contentResponse || !contentResponse.success) {
+                    sendResponse({
+                        success: false,
+                        error: 'Failed to extract page content'
+                    });
+                    return;
+                }
+                
+                sendProgress({
+                    percentage: 25,
+                    phase: 'Content extracted',
+                    details: 'Content successfully extracted, preparing for analysis...'
+                });
+                
+                try {
+                    // Use Grok to summarize the content
+                    const summary = await summarizeContentWithGrok(contentResponse.content, sendProgress);
+                    
+                    sendProgress({
+                        percentage: 100,
+                        phase: 'Complete!',
+                        details: 'Analysis finished successfully.'
+                    });
+                    
+                    sendResponse({
+                        success: true,
+                        summary: summary,
+                        originalContent: {
+                            title: contentResponse.content.title,
+                            url: contentResponse.content.url
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Error in content analysis:', error);
+                    sendResponse({
+                        success: false,
+                        error: error.message || 'Failed to analyze content'
+                    });
+                }
+            });
+        });
+        
+        return true; // Keep message channel open for async response
     }
     
     // Unknown understand content action
     console.warn('Unknown understand content action:', action);
     sendResponse({ success: false, error: 'Unknown understand content action' });
     return false;
+}
+
+// Summarize content using Grok API
+async function summarizeContentWithGrok(pageContent, progressCallback = null) {
+    try {
+        console.log('Generating content summary with Grok...');
+        
+        if (progressCallback) {
+            progressCallback({
+                percentage: 30,
+                phase: 'Preparing content...',
+                details: 'Processing and formatting content for analysis...'
+            });
+        }
+        
+        // Prepare content for summarization - use the filtered main content
+        let contentText = `${pageContent.title || ''} ${pageContent.summary || ''}`.trim();
+        if (!contentText || contentText.length < 10) {
+            throw new Error('Insufficient page content for analysis');
+        }
+        
+        // Truncate if too long to respect token limits (Grok can handle more but we'll be conservative)
+        if (contentText.length > 8000) {
+            contentText = contentText.substring(0, 8000) + '...';
+        }
+
+        const prompt = `You are tasked with creating a detailed and concise summary of the users webpage.
+Your goal is to produce a comprehensive yet concise summary that captures the key points, goals, results, next steps, and insights in a structured format.
+
+Use your complete knowledge base to analyze this web content. Please do deep research to contextualize the information. Draw research from authoritative sources like similar articles or research and unbiased pundits.
+
+To create the summary, follow these steps:
+
+Carefully read and analyze the entire webpage main content. 
+Identify the main sections of the document.
+Organize the information in a hierarchical structure using numbered sections and subsections.
+Include relevant business results, statistics, percentages, and comparative data where applicable.
+Highlight any novel approaches, breakthroughs, or significant improvement over previous work.
+Summarize the results and their implications concisely.
+If the document discusses limitations or future work, include a brief mention of these.
+Start by writing a Summary of the purpose and key points of the web content in the first paragraph of your summary.
+Your Summary paragraph needs to include the most important business results, risks, debates, or otherwise pertinent highlights.
+Highlight key sections and include the most important information.
+Where applicable, organize the sections in chronological order of how the document progresses.
+For every point or section, make sure to include supporting arguments, examples, short quotes, results, comparisons, or explanations.
+
+When writing the summary:
+Use clear and concise language.
+Maintain a neutral, objective tone.
+Use bullet points for lists of features, characteristics, or findings.
+Include specific numbers and metrics where relevant.
+Avoid unnecessary jargon, but retain important technical terms.
+Do not include personal opinions or critiques of the research. 
+
+Format your summary using markdown for readability.
+
+Use # for main section headings
+Use ## for subsection headings
+Use * for bullet points
+Use ** for bold text to emphasize key points
+Aim for a comprehensive summary that captures the essence of the content while remaining concise and easy to read.
+The length of the summary should be proportional to the complexity and length of the original paper.
+
+Here is the attached content -- 
+
+WEBPAGE TITLE: ${pageContent.title || 'Untitled'}
+
+WEBPAGE CONTENT:
+${contentText}
+
+Please provide a comprehensive markdown-formatted summary following the requirements above:`;
+
+        if (progressCallback) {
+            progressCallback({
+                percentage: 50,
+                phase: 'Analyzing Content...',
+                details: 'Performing deep analysis and summarization...'
+            });
+        }
+        
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Content analysis timeout')), 120000); // 2 minute timeout
+        });
+        
+        // Create fetch promise for Grok API
+        const fetchPromise = fetch(`https://api.x.ai/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer xai-JGM7BR2dAtEmNkCka0UPsJ3ANql1UZrs5gtSXRl5Lxd6y0k5A0FUhAiV6j4nRr8cYD4o5hIXYqXh6y3t`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'grok-3-latest',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.3,
+                max_tokens: 4000
+            })
+        });
+        
+        // Race between fetch and timeout
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+        }
+        
+        if (progressCallback) {
+            progressCallback({
+                percentage: 85,
+                phase: 'Processing response...',
+                details: 'Formatting and finalizing the analysis results...'
+            });
+        }
+        
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from Grok API');
+        }
+        
+        const summary = data.choices[0].message.content.trim();
+        console.log('Content summary generated successfully');
+        
+        return summary;
+        
+    } catch (error) {
+        console.error('Error generating content summary:', error);
+        throw new Error(`Failed to generate summary: ${error.message}`);
+    }
 }
 
 // Handle extension installation

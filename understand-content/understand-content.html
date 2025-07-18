@@ -8,26 +8,86 @@
 </head>
 <body>
     <div class="container">
+        <div class="back-button">
+            <button id="back-btn" class="btn-back">← Back</button>
+        </div>
+        
         <header>
-            <div class="back-button">
-                <button id="back-btn" class="btn-back">← Back</button>
-            </div>
             <h1>Understand Content</h1>
             <p class="subtitle">Deep content analysis and insights</p>
         </header>
         
         <div class="content">
-            <div class="coming-soon">
-                <div class="coming-soon-icon">🚧</div>
-                <h2>Coming Soon</h2>
-                <p>This feature is currently under development. It will provide:</p>
-                <ul>
-                    <li>Deep content analysis and summarization</li>
-                    <li>Key insights extraction</li>
-                    <li>Context-aware recommendations</li>
-                    <li>Polymarket integration</li>
-                </ul>
-                <p class="note">Check back soon for updates!</p>
+            <!-- Loading State -->
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p class="loading-message">Analyzing content...</p>
+                <div class="loading-details">Extracting and summarizing webpage content...</div>
+                
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span class="progress-percentage" id="progress-percentage">0%</span>
+                        <span class="progress-phase" id="progress-phase">Starting...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error State -->
+            <div class="error" id="error" style="display: none;">
+                <div class="error-icon"></div>
+                <h3>Analysis Failed</h3>
+                <p class="error-message">An error occurred while analyzing the content.</p>
+                <button id="retry-btn" class="btn-retry">Try Again</button>
+            </div>
+            
+            <!-- Content Analysis -->
+            <div class="analysis-container" id="analysis-container" style="display: none;">
+                <div class="analysis-header">
+                    <h2>Content Summary</h2>
+                    <div class="source-info">
+                        <span class="source-title" id="source-title">Source Title</span>
+                        <a href="#" class="source-url" id="source-url" target="_blank">View Original</a>
+                    </div>
+                </div>
+                
+                <div class="summary-content" id="summary-content">
+                    <!-- Summary will be displayed here -->
+                </div>
+                
+                <div class="analysis-actions">
+                    <button id="analyze-btn" class="btn-primary">Analyze This Page</button>
+                    <button id="copy-summary-btn" class="btn-secondary">Copy Summary</button>
+                </div>
+            </div>
+            
+            <!-- Initial State -->
+            <div class="initial-state" id="initial-state">
+                <div class="feature-icon"></div>
+                <h2>Content Analysis</h2>
+                <p>Get summaries and insights from any webpage.</p>
+                <div class="features">
+                    <div class="feature">
+                        <span class="feature-bullet">•</span>
+                        <span>Deep content analysis with context</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-bullet">•</span>
+                        <span>Key insights extraction</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-bullet">•</span>
+                        <span>Structured markdown summaries</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-bullet">•</span>
+                        <span>Research-backed analysis</span>
+                    </div>
+                </div>
+                <button id="start-analysis-btn" class="btn-primary">Analyze This Page</button>
             </div>
         </div>
     </div>

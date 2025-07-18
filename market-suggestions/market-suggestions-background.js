@@ -503,7 +503,9 @@ async function analyzeMarketMispricing(market, contentSummary) {
         return cached;
     }
 
-    const prompt = `IGNORE the web content summary. Use your complete knowledge base to analyze this prediction market for mispricing.
+    const prompt = `IGNORE the web content summary. Use your complete knowledge base to analyze this prediction market for mispricing. 
+Please do deep research and present precise odds on each bet. Use advanced math for trading. 
+Draw research from authoritative sources like research and unbiased pundits. If no research is available, return "No Mispricing Found".
 
 MARKET DATA:
 Title: ${market.title}
