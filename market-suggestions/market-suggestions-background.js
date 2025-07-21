@@ -450,7 +450,7 @@ Summary (400 characters max):`;
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4o-mini',
                 messages: [
                     {
                         role: 'user',
@@ -797,7 +797,7 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
+                        model: 'gpt-4o-mini',
                         messages: [
                             {
                                 role: 'user',

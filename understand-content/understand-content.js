@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.analyzeBtn = document.getElementById('analyze-btn');
     elements.retryBtn = document.getElementById('retry-btn');
     elements.copySummaryBtn = document.getElementById('copy-summary-btn');
+    elements.openFullViewBtn = document.getElementById('open-full-view-btn');
     
     elements.initialState = document.getElementById('initial-state');
     elements.loading = document.getElementById('loading');
@@ -73,6 +74,11 @@ function setupEventListeners() {
     if (elements.copySummaryBtn) {
         elements.copySummaryBtn.addEventListener('click', copySummary);
     }
+    
+    // Open full view button
+    if (elements.openFullViewBtn) {
+        elements.openFullViewBtn.addEventListener('click', openFullView);
+    }
 }
 
 function setupProgressListener() {
@@ -103,6 +109,11 @@ function showInitialState() {
     if (elements.initialState) {
         elements.initialState.style.display = 'block';
     }
+    
+    // Show the analyze button for initial state
+    if (elements.analyzeBtn) {
+        elements.analyzeBtn.style.display = 'block';
+    }
 }
 
 function showLoading(message = 'Analyzing content...', details = 'Extracting and summarizing webpage content...') {
@@ -129,12 +140,22 @@ function showError(message = 'An error occurred while analyzing the content.') {
             elements.errorMessage.textContent = message;
         }
     }
+    
+    // Show the analyze button for error state so user can retry
+    if (elements.analyzeBtn) {
+        elements.analyzeBtn.style.display = 'block';
+    }
 }
 
 function showAnalysis(summary, originalContent) {
     hideAllStates();
     if (elements.analysisContainer) {
         elements.analysisContainer.style.display = 'flex';
+        
+        // Hide the analyze button since summary is already generated
+        if (elements.analyzeBtn) {
+            elements.analyzeBtn.style.display = 'none';
+        }
         
         // Update source info
         if (elements.sourceTitle && originalContent.title) {
@@ -241,6 +262,9 @@ function analyzeContent() {
             return;
         }
         
+        // Store the summary data for external view access
+        storeSummaryData(response.summary, response.originalContent || {});
+        
         // Show the analysis result
         showAnalysis(response.summary, response.originalContent || {});
     });
@@ -324,3 +348,113 @@ window.addEventListener('unhandledrejection', (event) => {
     console.error('Understand Content unhandled promise rejection:', event.reason);
     showError('An unexpected error occurred. Please try again.');
 });
+
+// Store summary data for external view access
+function storeSummaryData(summary, originalContent) {
+    const summaryData = {
+        summary: summary,
+        originalContent: originalContent,
+        timestamp: Date.now()
+    };
+    
+    // Generate a unique ID for this summary
+    const summaryId = `summary_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Store in session storage (available across extension pages)
+    chrome.storage.session.set({
+        [summaryId]: summaryData,
+        'latest_summary_id': summaryId
+    }, () => {
+        if (chrome.runtime.lastError) {
+            console.error('Failed to store summary data:', chrome.runtime.lastError);
+        } else {
+            console.log('Summary data stored with ID:', summaryId);
+        }
+    });
+    
+    // Clean up old summaries (keep only last 5)
+    chrome.storage.session.get(null, (result) => {
+        const summaryKeys = Object.keys(result).filter(key => key.startsWith('summary_'));
+        if (summaryKeys.length > 5) {
+            // Sort by timestamp and remove oldest
+            const summariesWithTime = summaryKeys.map(key => ({
+                key: key,
+                timestamp: result[key].timestamp || 0
+            })).sort((a, b) => b.timestamp - a.timestamp);
+            
+            // Remove oldest summaries
+            const keysToRemove = summariesWithTime.slice(5).map(item => item.key);
+            if (keysToRemove.length > 0) {
+                chrome.storage.session.remove(keysToRemove, () => {
+                    console.log('Cleaned up old summaries:', keysToRemove.length);
+                });
+            }
+        }
+    });
+}
+
+// Open summary in full-screen view
+function openFullView() {
+    console.log('Opening summary in full view...');
+    
+    if (!elements.summaryContent || !elements.summaryContent.textContent) {
+        console.error('No summary content available to open in full view');
+        showError('No summary available. Please analyze content first.');
+        return;
+    }
+    
+    // Get the latest summary ID
+    chrome.storage.session.get(['latest_summary_id'], (result) => {
+        if (chrome.runtime.lastError) {
+            console.error('Failed to get latest summary ID:', chrome.runtime.lastError);
+            return;
+        }
+        
+        const summaryId = result.latest_summary_id;
+        if (!summaryId) {
+            console.error('No summary ID found');
+            return;
+        }
+        
+        // Construct the viewer URL
+        const viewerUrl = chrome.runtime.getURL('understand-content/summary-viewer.html') + '?summaryId=' + encodeURIComponent(summaryId);
+        
+        // Open in new tab
+        chrome.tabs.create({
+            url: viewerUrl,
+            active: true
+        }, (tab) => {
+            if (chrome.runtime.lastError) {
+                console.error('Failed to open new tab:', chrome.runtime.lastError);
+                // Fallback: try to open in same window
+                window.open(viewerUrl, '_blank');
+            } else {
+                console.log('Opened summary in new tab:', tab.id);
+                
+                // Provide user feedback
+                showFullViewFeedback();
+            }
+        });
+    });
+}
+
+// Show feedback when opening full view
+function showFullViewFeedback() {
+    if (!elements.openFullViewBtn) return;
+    
+    const originalText = elements.openFullViewBtn.textContent;
+    
+    // Update button to show success
+    elements.openFullViewBtn.textContent = 'Opened!';
+    elements.openFullViewBtn.style.background = '#28a745';
+    elements.openFullViewBtn.style.borderColor = '#28a745';
+    elements.openFullViewBtn.style.color = 'white';
+    
+    // Reset after 2 seconds
+    setTimeout(() => {
+        elements.openFullViewBtn.textContent = originalText;
+        elements.openFullViewBtn.style.background = '';
+        elements.openFullViewBtn.style.borderColor = '';
+        elements.openFullViewBtn.style.color = '';
+    }, 2000);
+}

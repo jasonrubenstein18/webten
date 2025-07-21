@@ -6,7 +6,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
     "https://api.elections.kalshi.com/*",
@@ -30,7 +31,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["lib/*"],
+      "resources": ["lib/*", "understand-content/*"],
       "matches": ["<all_urls>"]
     }
   ]
