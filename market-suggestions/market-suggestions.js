@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.backBtn = document.getElementById('back-btn');
     elements.kalshiBtn = document.getElementById('kalshi-btn');
     elements.polymarketBtn = document.getElementById('polymarket-btn');
-    elements.analyzePageBtn = document.getElementById('analyze-page-btn');
 
     elements.loadingDiv = document.querySelector('.loading');
     elements.errorDiv = document.querySelector('.error');
@@ -26,8 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.analysisInfo = document.querySelector('.analysis-info');
     elements.summaryText = document.querySelector('.summary-text');
     
-    if (!elements.kalshiBtn || !elements.polymarketBtn || !elements.marketsContainer || 
-        !elements.analyzePageBtn) {
+    if (!elements.kalshiBtn || !elements.polymarketBtn || !elements.marketsContainer) {
         console.error('Required DOM elements not found');
         showError('Interface error: Required elements missing');
         return;
@@ -35,7 +33,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupEventListeners();
     setupProgressListener(); // Set up real progress listening
-    updateActionButtonStates(); // Initialize button states
     analyzeCurrentPage(); // Auto-analyze the current page on startup
 });
 
@@ -53,7 +50,6 @@ function setupEventListeners() {
     elements.polymarketBtn.addEventListener('click', () => switchPlatform('polymarket'));
     
     // Action buttons
-    elements.analyzePageBtn.addEventListener('click', () => analyzeCurrentPage());
 }
 
 // Set up listener for real progress updates from background script
@@ -229,9 +225,6 @@ function loadKalshiMarkets() {
 
 function analyzeCurrentPage() {
     console.log('Analyzing current page for relevant markets...');
-    
-    // Update button states
-    updateActionButtonStates();
     
     showLoading();
     
@@ -437,12 +430,6 @@ function createRelevantMarketElement(market) {
     });
     
     return marketDiv;
-}
-
-function updateActionButtonStates() {
-    // The analyze page button should always be primary since it's the only action
-    elements.analyzePageBtn.classList.add('primary');
-    elements.analyzePageBtn.classList.remove('secondary');
 }
 
 function showPolymarketComingSoon() {

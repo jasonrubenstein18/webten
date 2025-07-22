@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Cache DOM elements
     elements.backBtn = document.getElementById('back-btn');
-    elements.startAnalysisBtn = document.getElementById('start-analysis-btn');
-    elements.analyzeBtn = document.getElementById('analyze-btn');
+    elements.deepAnalysisBtn = document.getElementById('deep-analysis-btn');
+    elements.quickSummaryBtn = document.getElementById('quick-summary-btn');
     elements.retryBtn = document.getElementById('retry-btn');
     elements.copySummaryBtn = document.getElementById('copy-summary-btn');
     elements.openFullViewBtn = document.getElementById('open-full-view-btn');
@@ -58,16 +58,16 @@ function setupEventListeners() {
     }
     
     // Analysis buttons
-    if (elements.startAnalysisBtn) {
-        elements.startAnalysisBtn.addEventListener('click', analyzeContent);
+    if (elements.deepAnalysisBtn) {
+        elements.deepAnalysisBtn.addEventListener('click', () => analyzeContent('deep'));
     }
     
-    if (elements.analyzeBtn) {
-        elements.analyzeBtn.addEventListener('click', analyzeContent);
+    if (elements.quickSummaryBtn) {
+        elements.quickSummaryBtn.addEventListener('click', () => analyzeContent('quick'));
     }
     
     if (elements.retryBtn) {
-        elements.retryBtn.addEventListener('click', analyzeContent);
+        elements.retryBtn.addEventListener('click', () => analyzeContent(elements.lastAnalysisType || 'deep'));
     }
     
     // Copy summary button
@@ -207,10 +207,19 @@ function updateProgress(percentage, phase = '') {
     }
 }
 
-function analyzeContent() {
-    console.log('Starting content analysis...');
+function analyzeContent(type = 'deep') {
+    console.log('Starting content analysis...', type);
     
-    showLoading();
+    // Store the analysis type for retry functionality
+    elements.lastAnalysisType = type;
+    
+    // Set loading message based on analysis type
+    const loadingMessage = type === 'quick' ? 'Creating quick summary...' : 'Analyzing content...';
+    const loadingDetails = type === 'quick' ? 
+        'Generating Newsletter-style summary...' : 
+        'Extracting and summarizing webpage content...';
+    
+    showLoading(loadingMessage, loadingDetails);
     
     // Set up timeout for the entire analysis process
     const analysisTimeout = setTimeout(() => {
@@ -219,7 +228,8 @@ function analyzeContent() {
     }, 120000); // 2 minute timeout
     
     // Send message to background script to analyze content
-    chrome.runtime.sendMessage({ action: 'understand-content:analyzeContent' }, (response) => {
+    const action = type === 'quick' ? 'understand-content:quickSummary' : 'understand-content:analyzeContent';
+    chrome.runtime.sendMessage({ action: action }, (response) => {
         // Clear the timeout
         clearTimeout(analysisTimeout);
         

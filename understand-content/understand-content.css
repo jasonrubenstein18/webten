@@ -6,7 +6,7 @@ body {
     background: #ffffff;
     color: #1d1d1f;
     min-height: 400px;
-    width: 320px;
+    width: 640px;
     font-size: 14px;
     line-height: 1.4;
 }
@@ -241,7 +241,7 @@ header h1 {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 280px;
+    max-width: 600px;
 }
 
 .analysis-header {
@@ -418,7 +418,7 @@ header h1 {
     border-radius: 12px;
     padding: 30px 20px;
     text-align: center;
-    max-width: 280px;
+    max-width: 600px;
     margin: 0 auto;
 }
 
@@ -477,6 +477,89 @@ header h1 {
     font-weight: 600;
     margin-right: 8px;
     font-size: 16px;
+}
+
+/* Analysis Options */
+.analysis-options {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.analysis-option {
+    background: #ffffff;
+    border: 1px solid #e5e5e7;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    flex: 1;
+}
+
+.analysis-option:hover {
+    border-color: #007aff;
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
+}
+
+.option-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.option-header h3 {
+    color: #1d1d1f;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.option-badge {
+    background: #f5f5f7;
+    color: #86868b;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.option-badge.comprehensive {
+    background: #e8f4ff;
+    color: #007aff;
+}
+
+.option-badge.quick {
+    background: #fff2e8;
+    color: #ff9500;
+}
+
+.analysis-option .features {
+    margin-bottom: 16px;
+}
+
+.analysis-option .feature {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.analysis-option .btn-primary {
+    margin-top: 8px;
+}
+
+.btn-primary.quick {
+    background: #ff9500;
+}
+
+.btn-primary.quick:hover {
+    background: #e6850e;
+}
+
+.btn-primary.quick:active {
+    background: #cc7200;
 }
 
 /* Focus states for accessibility */

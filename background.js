@@ -145,6 +145,96 @@ function handleUnderstandContentMessage(request, sender, sendResponse) {
         });
         
         return true; // Keep message channel open for async response
+    } else if (action === 'quickSummary') {
+        console.log('Generating quick summary...');
+        
+        // Helper function to send progress updates
+        const sendProgress = (progressData) => {
+            chrome.runtime.sendMessage({
+                action: 'understand-content:progressUpdate',
+                progress: progressData
+            }).catch(() => {
+                // Popup might be closed, ignore errors
+            });
+        };
+        
+        // Initial progress
+        sendProgress({
+            percentage: 5,
+            phase: 'Starting quick summary...',
+            details: 'Preparing Newsletter-style analysis...'
+        });
+        
+        // First get the page content from the content script
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (!tabs[0]) {
+                sendResponse({
+                    success: false,
+                    error: 'No active tab found'
+                });
+                return;
+            }
+            
+            sendProgress({
+                percentage: 15,
+                phase: 'Extracting content...',
+                details: 'Reading webpage content...'
+            });
+            
+            chrome.tabs.sendMessage(tabs[0].id, { action: 'extractContent' }, async (contentResponse) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error extracting content:', chrome.runtime.lastError);
+                    sendResponse({
+                        success: false,
+                        error: 'Failed to extract page content. Make sure you are on a webpage.'
+                    });
+                    return;
+                }
+                
+                if (!contentResponse || !contentResponse.success) {
+                    sendResponse({
+                        success: false,
+                        error: 'Failed to extract page content'
+                    });
+                    return;
+                }
+                
+                sendProgress({
+                    percentage: 30,
+                    phase: 'Content extracted',
+                    details: 'Content successfully extracted, creating quick summary...'
+                });
+                
+                try {
+                    // Use Grok to create quick summary
+                    const summary = await createQuickSummaryWithGrok(contentResponse.content, sendProgress);
+                    
+                    sendProgress({
+                        percentage: 100,
+                        phase: 'Complete!',
+                        details: 'Quick summary finished successfully.'
+                    });
+                    
+                    sendResponse({
+                        success: true,
+                        summary: summary,
+                        originalContent: {
+                            title: contentResponse.content.title,
+                            url: contentResponse.content.url
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Error in quick summary:', error);
+                    sendResponse({
+                        success: false,
+                        error: error.message || 'Failed to create quick summary'
+                    });
+                }
+            });
+        });
+        
+        return true; // Keep message channel open for async response
     }
     
     // Unknown understand content action
@@ -281,6 +371,113 @@ Please provide a comprehensive markdown-formatted summary following the requirem
     } catch (error) {
         console.error('Error generating content summary:', error);
         throw new Error(`Failed to generate summary: ${error.message}`);
+    }
+}
+
+// Create quick Newsletter-style summary using Grok API
+async function createQuickSummaryWithGrok(pageContent, progressCallback = null) {
+    try {
+        console.log('Generating quick Newsletterstyle summary with Grok...');
+        
+        if (progressCallback) {
+            progressCallback({
+                percentage: 40,
+                phase: 'Preparing content...',
+                details: 'Processing content for Newsletter-style summary...'
+            });
+        }
+        
+        // Prepare content for summarization - use the filtered main content
+        let contentText = `${pageContent.title || ''} ${pageContent.summary || ''}`.trim();
+        if (!contentText || contentText.length < 10) {
+            throw new Error('Insufficient page content for analysis');
+        }
+        
+        // Truncate if too long to respect token limits
+        if (contentText.length > 6000) {
+            contentText = contentText.substring(0, 6000) + '...';
+        }
+
+        const prompt = `You are a Morning Brew–style newsletter writer: smart, snappy, and always a little cheeky. Your task is to read the following webpage content and produce a clear, concise "Morning Brew"–flavored summary that:
+
+1. Captures the key points and takeaways.
+2. Feels fun and engaging to read, with the light tone and punchy flair Morning Brew readers love.
+3. Stays lean—no fluff, no filler words, no long-winded introductions.
+4. Incorporates any relevant context or background you know (e.g., drawing on authoritative articles, research studies, or respected pundits) to enrich the summary and ensure accuracy.
+5. Remains unbiased and factual.
+
+Output format:
+• **Headline‑style title** (one sentence)
+• **3–5 bullet points** (each ~15–25 words)
+• **One‑sentence "Why it matters" wrap‑up** 
+
+Here's the content to summarize:
+
+WEBPAGE TITLE: ${pageContent.title || 'Untitled'}
+
+WEBPAGE CONTENT:
+${contentText}
+
+Please provide your Morning Brew-style summary following the format above:`;
+
+        if (progressCallback) {
+            progressCallback({
+                percentage: 60,
+                phase: 'Creating summary...',
+                details: 'Generating snappy Newsletter-style content...'
+            });
+        }
+        
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Quick summary timeout')), 60000); // 1 minute timeout for quick summary
+        });
+        
+        // Create fetch promise for Grok API
+        const fetchPromise = fetch(`https://api.x.ai/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer xai-JGM7BR2dAtEmNkCka0UPsJ3ANql1UZrs5gtSXRl5Lxd6y0k5A0FUhAiV6j4nRr8cYD4o5hIXYqXh6y3t`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'grok-3-latest',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7, // Higher temperature for more creative/cheeky tone
+                max_tokens: 800 // Shorter response for quick summary
+            })
+        });
+        
+        // Race between fetch and timeout
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+        }
+        
+        if (progressCallback) {
+            progressCallback({
+                percentage: 90,
+                phase: 'Processing response...',
+                details: 'Formatting and finalizing the quick summary...'
+            });
+        }
+        
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from Grok API');
+        }
+        
+        const summary = data.choices[0].message.content.trim();
+        console.log('Quick summary generated successfully');
+        
+        return summary;
+        
+    } catch (error) {
+        console.error('Error generating quick summary:', error);
+        throw new Error(`Failed to generate quick summary: ${error.message}`);
     }
 }
 
