@@ -13,7 +13,9 @@
     "https://api.elections.kalshi.com/*",
     "https://kalshi.com/*",
     "https://polymarket.com/*",
-    "https://api.openai.com/*"
+    "https://gamma-api.polymarket.com/*",
+    "https://api.openai.com/*",
+    "https://api.x.ai/*"
   ],
   "action": {
     "default_popup": "popup.html",

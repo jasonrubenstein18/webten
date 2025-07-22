@@ -3,6 +3,7 @@ console.log('Market Suggestion Extension: Background router loaded');
 
 // Import module-specific background scripts
 importScripts('market-suggestions/market-suggestions-background.js');
+importScripts('market-suggestions/market-suggestions-poly-background.js');
 
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -12,6 +13,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action.startsWith('market-suggestions:')) {
         // Route to market suggestions module
         return handleMarketSuggestionsMessage(request, sender, sendResponse);
+    } else if (request.action.startsWith('polymarket:')) {
+        // Route to Polymarket module
+        return handlePolymarketMessage(request, sender, sendResponse);
     } else if (request.action.startsWith('understand-content:')) {
         // Route to understand content module (placeholder for now)
         return handleUnderstandContentMessage(request, sender, sendResponse);

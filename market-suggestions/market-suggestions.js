@@ -1,8 +1,29 @@
 console.log('Market Suggestion Extension: Popup script loaded');
 
-let currentPlatform = 'kalshi';
+let currentPlatform = null;
 let marketsData = [];
 // Only one mode now - page analysis
+
+// Helper function to generate platform-specific market URLs
+function getMarketUrl(market) {
+    if (currentPlatform === 'polymarket') {
+        // Polymarket URLs use parent-slug/market-slug format for grouped markets
+        if (market.parentSlug && market.slug) {
+            return `https://polymarket.com/event/${market.parentSlug}/${market.slug}`;
+        }
+        // Fallback to just market slug for standalone markets
+        if (market.slug) {
+            return `https://polymarket.com/event/${market.slug}`;
+        }
+        // Last resort fallback
+        const slug = market.series_ticker || market.ticker || market.conditionId;
+        return `https://polymarket.com/event/${slug}`;
+    } else {
+        // Default to Kalshi format
+        const ticker = market.series_ticker || market.ticker;
+        return `https://kalshi.com/events/${ticker}`;
+    }
+}
 
 // Cache DOM elements
 const elements = {};
@@ -33,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupEventListeners();
     setupProgressListener(); // Set up real progress listening
-    analyzeCurrentPage(); // Auto-analyze the current page on startup
+    showPlatformSelection(); // Show platform selection prompt
 });
 
 function setupEventListeners() {
@@ -68,18 +89,79 @@ function setupProgressListener() {
 }
 
 function switchPlatform(platform) {
-    console.log(`Switching to platform: ${platform}`);
+    console.log(`User selected platform: ${platform}`);
     currentPlatform = platform;
     
     // Update active button
     elements.kalshiBtn.classList.toggle('active', platform === 'kalshi');
     elements.polymarketBtn.classList.toggle('active', platform === 'polymarket');
     
-    if (platform === 'kalshi') {
-        loadKalshiMarkets();
-    } else if (platform === 'polymarket') {
-        showPolymarketComingSoon();
+    // Start analysis for the selected platform
+    analyzeCurrentPage();
+}
+
+function showPlatformSelection() {
+    console.log('Showing platform selection');
+    
+    // Hide all other states
+    elements.loadingDiv.style.display = 'none';
+    elements.errorDiv.style.display = 'none';
+    elements.marketsContainer.style.display = 'none';
+    
+    // Reset platform buttons to inactive state
+    elements.kalshiBtn.classList.remove('active');
+    elements.polymarketBtn.classList.remove('active');
+    
+    // Create platform selection UI - insert BEFORE the original content, don't replace it
+    elements.marketsContainer.style.display = 'block';
+    
+    // Hide original content elements
+    if (elements.analysisInfo) elements.analysisInfo.style.display = 'none';
+    if (elements.marketsTitle) elements.marketsTitle.parentElement.style.display = 'none';
+    if (elements.marketsList) elements.marketsList.style.display = 'none';
+    
+    // Create platform selection div if it doesn't exist
+    let platformSelectionDiv = elements.marketsContainer.querySelector('.platform-selection');
+    if (!platformSelectionDiv) {
+        platformSelectionDiv = document.createElement('div');
+        platformSelectionDiv.className = 'platform-selection';
+        elements.marketsContainer.insertBefore(platformSelectionDiv, elements.marketsContainer.firstChild);
     }
+    
+    platformSelectionDiv.innerHTML = `
+        <div class="selection-header">
+            <h2>Choose Your Platform</h2>
+            <p>Select a prediction market platform to analyze this page and find relevant markets.</p>
+        </div>
+        <div class="platform-cards">
+            <div class="platform-card" data-platform="kalshi">
+                <h3>Kalshi</h3>
+                <p>Regulated prediction markets focused on politics, economics, and current events</p>
+                <button class="btn btn-primary platform-select-btn" data-platform="kalshi">
+                    Analyze with Kalshi
+                </button>
+            </div>
+            <div class="platform-card" data-platform="polymarket">
+                <h3>Polymarket</h3>
+                <p>Decentralized prediction markets covering sports, politics, and popular topics</p>
+                <button class="btn btn-primary platform-select-btn" data-platform="polymarket">
+                    Analyze with Polymarket
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Show platform selection
+    platformSelectionDiv.style.display = 'block';
+    
+    // Add event listeners to platform selection buttons
+    const platformButtons = platformSelectionDiv.querySelectorAll('.platform-select-btn');
+    platformButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            const platform = e.target.getAttribute('data-platform');
+            switchPlatform(platform);
+        });
+    });
 }
 
 function showLoading() {
@@ -99,6 +181,18 @@ function showError(message) {
 
 function showMarkets(markets) {
     console.log(`Showing ${markets.length} markets`);
+    
+    // Hide platform selection if it exists
+    const platformSelectionDiv = elements.marketsContainer.querySelector('.platform-selection');
+    if (platformSelectionDiv) {
+        platformSelectionDiv.style.display = 'none';
+    }
+    
+    // Show original content elements
+    if (elements.analysisInfo) elements.analysisInfo.style.display = 'none'; // No analysis info for regular markets
+    if (elements.marketsTitle) elements.marketsTitle.parentElement.style.display = 'block';
+    if (elements.marketsList) elements.marketsList.style.display = 'block';
+    
     elements.loadingDiv.style.display = 'none';
     elements.errorDiv.style.display = 'none';
     elements.marketsContainer.style.display = 'block';
@@ -124,9 +218,8 @@ function createMarketElement(market) {
     const marketDiv = document.createElement('div');
     marketDiv.className = 'market-item clickable';
     
-    // Construct Kalshi market URL
-    const baseUrl = 'https://kalshi.com/events/';
-    const marketUrl = `${baseUrl}${market.series_ticker || market.ticker}`;
+    // Construct platform-specific market URL
+    const marketUrl = getMarketUrl(market);
     
     marketDiv.innerHTML = `
         <div class="market-header">
@@ -180,52 +273,18 @@ function createMarketElement(market) {
     return marketDiv;
 }
 
-function loadKalshiMarkets() {
-    console.log('Loading Kalshi events...');
-    showLoading();
-    
-    // Update loading text to indicate we're fetching more markets
-    if (elements.loadingDiv.querySelector('p')) {
-        elements.loadingDiv.querySelector('p').textContent = 'Fetching open events (up to 4000)...';
-    }
-    
-    // Send message to background script to fetch markets
-    chrome.runtime.sendMessage({ action: 'market-suggestions:getKalshiMarkets' }, (response) => {
-        console.log('Received response from background:', response);
-        
-        if (chrome.runtime.lastError) {
-            console.error('Chrome runtime error:', chrome.runtime.lastError);
-            showError('Failed to communicate with background script');
-            return;
-        }
-        
-        if (!response) {
-            console.error('No response received from background script');
-            showError('No response from background script');
-            return;
-        }
-        
-        if (!response.success) {
-            console.error('Background script returned error:', response.error);
-            showError(response.error || 'Failed to fetch events');
-            return;
-        }
-        
-        if (!response.markets || !Array.isArray(response.markets)) {
-            console.error('Invalid markets data:', response.markets);
-            showError('Invalid events data received');
-            return;
-        }
-        
-        marketsData = response.markets;
-        console.log(`Successfully loaded ${marketsData.length} open events`);
-        showMarkets(marketsData);
-    });
-}
+
 
 function analyzeCurrentPage() {
-    console.log('Analyzing current page for relevant markets...');
+    console.log(`Analyzing current page for relevant ${currentPlatform} markets...`);
     
+    // Use platform-specific analysis
+    if (currentPlatform === 'polymarket') {
+        analyzePolymarketContent();
+        return;
+    }
+    
+    // Default to Kalshi analysis
     showLoading();
     
     // Start with initial progress
@@ -314,6 +373,17 @@ function updateLoadingProgress(message, percentage = 0, details = '') {
 function showRelevantMarkets(markets, contentSummary, totalAnalyzed) {
     console.log(`Showing ${markets.length} relevant markets out of ${totalAnalyzed} analyzed`);
     
+    // Hide platform selection if it exists
+    const platformSelectionDiv = elements.marketsContainer.querySelector('.platform-selection');
+    if (platformSelectionDiv) {
+        platformSelectionDiv.style.display = 'none';
+    }
+    
+    // Show original content elements
+    if (elements.analysisInfo) elements.analysisInfo.style.display = 'block';
+    if (elements.marketsTitle) elements.marketsTitle.parentElement.style.display = 'block';
+    if (elements.marketsList) elements.marketsList.style.display = 'block';
+    
     // Show analysis info
     if (contentSummary && elements.summaryText) {
         elements.summaryText.textContent = contentSummary;
@@ -356,12 +426,16 @@ function createRelevantMarketElement(market) {
     const marketDiv = document.createElement('div');
     marketDiv.className = 'market-item clickable relevant';
     
-    // Construct Kalshi market URL
-    const baseUrl = 'https://kalshi.com/events/';
-    const marketUrl = `${baseUrl}${market.series_ticker || market.ticker}`;
+    // Construct platform-specific market URL
+    const marketUrl = getMarketUrl(market);
     
     // Format functions
-    const formatPrice = (price) => price != null ? `${price}¢` : '—';
+    const formatPrice = (price) => {
+    if (price == null) return '—';
+    // Round to nearest tenth to avoid floating point display issues
+    const rounded = Math.round(price * 10) / 10;
+    return `${rounded}¢`;
+};
     const formatVolume = (vol) => {
         if (!vol) return '0';
         return vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : vol.toString();
@@ -432,11 +506,69 @@ function createRelevantMarketElement(market) {
     return marketDiv;
 }
 
-function showPolymarketComingSoon() {
+
+
+function analyzePolymarketContent() {
+    console.log('Analyzing current page for relevant Polymarket markets...');
+    
     showLoading();
-    setTimeout(() => {
-        showError('Polymarket integration coming soon!');
-    }, 500);
+    
+    // Start with initial progress
+    updateLoadingProgress('Starting Polymarket analysis...', 0, 'Initializing page analysis...');
+    
+    // Set up timeout for the entire analysis process
+    const analysisTimeout = setTimeout(() => {
+        console.error('Polymarket analysis timeout after 2 minutes');
+        showError('Analysis timed out after 2 minutes. Please try again or check your internet connection.');
+    }, 120000); // 2 minute timeout
+    
+    // Send message to background script to analyze page content for Polymarket
+    chrome.runtime.sendMessage({ action: 'polymarket:analyzePageContent' }, (response) => {
+        // Clear the timeout
+        clearTimeout(analysisTimeout);
+        
+        console.log('Received Polymarket analysis response:', response);
+        
+        if (chrome.runtime.lastError) {
+            console.error('Chrome runtime error:', chrome.runtime.lastError);
+            showError('Failed to communicate with background script. Please check your internet connection.');
+            return;
+        }
+        
+        if (!response) {
+            console.error('No response received from background script');
+            showError('No response from background script. Please try again.');
+            return;
+        }
+        
+        if (!response.success) {
+            console.error('Polymarket analysis failed:', response.error);
+            let errorMessage = response.error || 'Failed to analyze page content';
+            
+            // Provide more specific error messages
+            if (errorMessage.includes('Failed to fetch')) {
+                errorMessage = 'Network error: Please check your internet connection and try again.';
+            } else if (errorMessage.includes('timeout')) {
+                errorMessage = 'Request timed out: Please try again. If the issue persists, check your internet connection.';
+            } else if (errorMessage.includes('API error')) {
+                errorMessage = 'Analysis service error: Please try again in a few moments.';
+            }
+            
+            showError(errorMessage);
+            return;
+        }
+        
+        if (!response.markets || !Array.isArray(response.markets)) {
+            console.error('Invalid Polymarket analysis data:', response.markets);
+            showError('Invalid analysis data received. Please try again.');
+            return;
+        }
+        
+        // Small delay to show completion before showing results
+        setTimeout(() => {
+            showRelevantMarkets(response.markets, response.contentSummary, response.totalAnalyzed);
+        }, 500);
+    });
 }
 
 function copyTicker(ticker) {
