@@ -427,15 +427,15 @@ async function generateAIContentSummary(title, summary) {
         }
         
         // Truncate if too long to save tokens
-        if (contentText.length > 2000) {
-            contentText = contentText.substring(0, 2000) + '...';
+        if (contentText.length > 2500) {
+            contentText = contentText.substring(0, 2500) + '...';
         }
         
-        const prompt = `Please write a brief, clear summary of the following webpage content in 400 characters or fewer. Focus on the main topic and key points:
+        const prompt = `Please write a brief, clear summary of the following webpage content in 450 characters or fewer if possible. If it's longer always finish your sentence. Focus on the main topic and key points:
 
 ${contentText}
 
-Summary (400 characters max):`;
+Summary (450 characters max):`;
 
         // Create timeout promise
         const timeoutPromise = new Promise((_, reject) => {
@@ -458,7 +458,7 @@ Summary (400 characters max):`;
                     }
                 ],
                 temperature: 0.3,
-                max_tokens: 150
+                max_tokens: 200
             })
         });
         
@@ -478,17 +478,30 @@ Summary (400 characters max):`;
         
         const aiSummary = data.choices[0].message.content.trim();
         
-        // Ensure it's within 400 characters
-        if (aiSummary.length > 400) {
-            return aiSummary.substring(0, 397) + '...';
+        // Ensure it's within 450 characters and ends with a complete sentence
+        let finalSummary = aiSummary;
+        if (finalSummary.length > 450) {
+            // Find the last period within 450 characters
+            finalSummary = finalSummary.substring(0, 450);
+            const lastPeriod = finalSummary.lastIndexOf('.');
+            if (lastPeriod !== -1) {
+                finalSummary = finalSummary.substring(0, lastPeriod + 1);
+            }
         }
-        
-        return aiSummary;
+
+        return finalSummary;
         
     } catch (error) {
         console.error('Error generating AI summary:', error);
-        // Fallback to a simple summary if AI fails
-        const fallback = `${title || ''} ${summary || ''}`.substring(0, 397) + '...';
+        // Fallback to a simple summary if AI fails, trimmed to last complete sentence
+        let fallback = `${title || ''} ${summary || ''}`.trim();
+        if (fallback.length > 450) {
+            fallback = fallback.substring(0, 450);
+            const lastPeriod = fallback.lastIndexOf('.');
+            if (lastPeriod !== -1) {
+                fallback = fallback.substring(0, lastPeriod + 1);
+            }
+        }
         return fallback || 'Content summary not available';
     }
 }
@@ -826,18 +839,33 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                 const aiResponse = data.choices[0].message.content.trim();
                 console.log(`AI Response for batch ${batchNumber}:`, aiResponse);
                 
-                // Parse AI response
+                // Parse AI response with improved handling for code blocks
                 let relevantTickers;
+                let parseAttempt = aiResponse;
+
+                // First, try to clean if wrapped in code block
+                if (parseAttempt.startsWith('```json') && parseAttempt.endsWith('```')) {
+                    parseAttempt = parseAttempt.slice(7, -3).trim();
+                } else if (parseAttempt.startsWith('```') && parseAttempt.endsWith('```')) {
+                    parseAttempt = parseAttempt.slice(3, -3).trim();
+                }
+
                 try {
-                    relevantTickers = JSON.parse(aiResponse);
+                    relevantTickers = JSON.parse(parseAttempt);
                 } catch (parseError) {
                     console.error(`Failed to parse AI response for batch ${batchNumber}:`, parseError);
-                    // Try to extract JSON from response if it's wrapped in text
+                    
+                    // Fallback: Try to extract JSON array from response
                     const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
                     if (jsonMatch) {
-                        relevantTickers = JSON.parse(jsonMatch[0]);
+                        try {
+                            relevantTickers = JSON.parse(jsonMatch[0]);
+                        } catch (fallbackError) {
+                            console.warn(`Fallback parse failed for batch ${batchNumber}:`, fallbackError);
+                            continue;
+                        }
                     } else {
-                        console.warn(`Skipping batch ${batchNumber} due to parse error`);
+                        console.warn(`No JSON array found in response for batch ${batchNumber}, skipping...`);
                         continue;
                     }
                 }
