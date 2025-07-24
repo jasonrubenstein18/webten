@@ -5,34 +5,6 @@ console.log('Market Suggestion Extension: Background script loaded');
 const BASE = 'https://api.elections.kalshi.com';
 const KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
 
-// OpenAI API configuration
-const OPENAI_API_KEY = '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';
-const OPENAI_BASE_URL = 'https://api.openai.com/v1';
-
-// Grok API configuration
-const GROK_API_KEY = 'xai-JGM7BR2dAtEmNkCka0UPsJ3ANql1UZrs5gtSXRl5Lxd6y0k5A0FUhAiV6j4nRr8cYD4o5hIXYqXh6y3t';
-const GROK_BASE_URL = 'https://api.x.ai/v1';
-const GROK_MODEL = 'grok-3-latest';
-
-// Configuration
-const CONFIG = {
-    MAX_PAGES: 20,        // Fetch up to 20 pages (4000 markets max)
-    EVENTS_PER_PAGE: 200, // Max limit per request
-    MAX_RELEVANT_MARKETS: 8, // Maximum number of relevant markets to return
-    MAX_MARKETS_FOR_ANALYSIS: 4000, // Increased limit for thorough analysis
-    API_TIMEOUT: 30000, // 30 second timeout for individual API calls
-    ANALYSIS_TIMEOUT: 180000, // 3 minute timeout for overall analysis
-    EMBEDDING_MODEL: 'text-embedding-ada-002', // OpenAI embedding model
-    EMBEDDING_BATCH_SIZE: 20, // Number of embeddings to process at once
-    EMBEDDING_CACHE_EXPIRY: 24 * 60 * 60 * 1000, // 24 hours
-    BATCH_DELAY: 500, // Delay between batches in milliseconds (reduced from 1000)
-    MAX_STORAGE_SIZE: 5 * 1024 * 1024, // 5MB storage limit
-    MAX_RETRY_ATTEMPTS: 3,
-    RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
-    MAX_MISPRICING_ANALYSES: 100, // Max total mispricing analyses to run
-    MISPRICING_CACHE_EXPIRY: 60 * 60 * 1000, // 1 hour
-};
-
 // Fetch events from Kalshi API with pagination support
 async function fetchKalshiMarkets() {
     try {

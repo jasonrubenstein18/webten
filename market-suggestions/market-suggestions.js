@@ -566,7 +566,7 @@ function analyzePolymarketContent() {
         
         // Small delay to show completion before showing results
         setTimeout(() => {
-            showRelevantMarkets(response.markets, response.contentSummary, response.totalAnalyzed);
+            showRelevantMarkets(response.markets, response.contentSummary, response.totalFetchedMarkets || response.totalAnalyzed);
         }, 500);
     });
 }

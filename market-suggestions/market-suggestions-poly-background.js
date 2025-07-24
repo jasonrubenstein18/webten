@@ -15,6 +15,97 @@ const POLYMARKET_CONFIG = {
     RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
 };
 
+// Generate AI-powered content summary using OpenAI
+async function generateAIContentSummary(title, summary) {
+    try {
+        console.log('Generating AI summary for content...');
+        
+        // Prepare content for summarization
+        let contentText = `${title || ''} ${summary || ''}`.trim();
+        if (!contentText || contentText.length < 10) {
+            return title || 'Content summary not available';
+        }
+        
+        // Truncate if too long to save tokens
+        if (contentText.length > 2500) {
+            contentText = contentText.substring(0, 2500) + '...';
+        }
+        
+        const prompt = `Please write a brief, clear summary of the following webpage content in 450 characters or fewer if possible. If it's longer always finish your sentence. Focus on the main topic and key points:
+
+${contentText}
+
+Summary (450 characters max):`;
+
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('AI summary timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
+        });
+        
+        // Create fetch promise
+        const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 200
+            })
+        });
+        
+        // Race between fetch and timeout
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from OpenAI API');
+        }
+        
+        const aiSummary = data.choices[0].message.content.trim();
+        
+        // Ensure it's within 450 characters and ends with a complete sentence
+        let finalSummary = aiSummary;
+        if (finalSummary.length > 450) {
+            // Find the last period within 450 characters
+            finalSummary = finalSummary.substring(0, 450);
+            const lastPeriod = finalSummary.lastIndexOf('.');
+            if (lastPeriod !== -1) {
+                finalSummary = finalSummary.substring(0, lastPeriod + 1);
+            }
+        }
+
+        return finalSummary;
+        
+    } catch (error) {
+        console.error('Error generating AI summary:', error);
+        // Fallback to a simple summary if AI fails, trimmed to last complete sentence
+        let fallback = `${title || ''} ${summary || ''}`.trim();
+        if (fallback.length > 450) {
+            fallback = fallback.substring(0, 450);
+            const lastPeriod = fallback.lastIndexOf('.');
+            if (lastPeriod !== -1) {
+                fallback = fallback.substring(0, lastPeriod + 1);
+            }
+        }
+        return fallback || 'Content summary not available';
+    }
+}
+
 // Fetch ALL Polymarket markets with pricing data
 async function fetchAllPolymarketMarkets() {
     try {
@@ -367,7 +458,7 @@ function summarizeMarketsForAI(markets) {
 }
 
 // Find relevant markets using AI-powered relevance analysis with optimized batching
-async function findRelevantPolymarketMarkets(pageContent, markets, progressCallback = null) {
+async function findRelevantPolymarketMarkets(pageContent, markets, totalFetchedMarkets = 0, progressCallback = null) {
     const startTime = Date.now();
     
     // Wrap the entire analysis in a timeout to prevent hanging
@@ -384,13 +475,16 @@ async function findRelevantPolymarketMarkets(pageContent, markets, progressCallb
             throw new Error('Insufficient page content for analysis');
         }
         
+        // Generate AI-powered summary for display (400 characters max)
+        const displaySummary = await generateAIContentSummary(pageContent.title, pageContent.summary);
+        
         // Truncate content if too long to save tokens
         if (contentText.length > 1500) {
             contentText = contentText.substring(0, 1500) + '...';
         }
         
         // Use larger batch size and fewer batches for efficiency
-        const basePromptTokens = estimateTokens(`Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the content. Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
+        const basePromptTokens = estimateTokens(`Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the web content. Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
 
 WEBPAGE CONTENT:
 Title: ${pageContent.title}
@@ -407,7 +501,7 @@ Return ONLY a JSON array in this exact format:
   }
 ]
 
-Only include markets with relevance score 40 or higher. If no markets are highly relevant, return an empty array.`);
+Only include markets with relevance score 75 or higher. If no markets are highly relevant, return an empty array.`);
         
         // Reserve tokens for response (1000) and safety margin (1000)
         const availableTokens = 16000 - basePromptTokens - 2000;
@@ -593,9 +687,10 @@ Only include markets with relevance score 40 or higher. If no markets are highly
             success: true,
             markets: topRelevantMarkets,
             totalAnalyzed: summarizedMarkets.length,
+            totalFetchedMarkets: totalFetchedMarkets,
             totalBatches: totalBatches,
             processingTime: processingTime,
-            contentSummary: `Found ${markets.length} active Polymarket markets`
+            contentSummary: displaySummary
         };
     })();
     
@@ -765,6 +860,7 @@ function handlePolymarketMessage(request, sender, sendResponse) {
                     const relevantResult = await findRelevantPolymarketMarkets(
                         contentResponse.content, 
                         transformedMarkets,
+                        allMarkets.length,
                         (progressData) => {
                             // Convert progress data to percentage (60-90% range)
                             const percentage = 60 + (progressData.current / progressData.total) * 30;
