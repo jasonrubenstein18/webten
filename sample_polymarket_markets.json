@@ -1,0 +1,502 @@
+[
+  {
+    "ticker": null,
+    "title": "Will Chris Gotterup make the 2025 USA Ryder Cup team?",
+    "description": "This is a polymarket on which golfers will be officially named to the 2025 USA Ryder Cup team.\n\nThe market will resolve to \"Yes\" for each golfer who is officially named to the 2025 USA Ryder Cup team, regardless of whether they qualify automatically or are selected as a captain’s pick. Otherwise, it will resolve to \"No\".\n\nGolfers who are named to the team but later withdraw or do not participate due to injury, suspension, personal reasons, or any other reason will still resolve to \"Yes\" if they were officially named prior to the start of the competition.\n\nAny replacement player who is officially added to the playing roster due to a withdrawal will also resolve to \"Yes\", provided their addition is confirmed before September 24, 2025, at 11:59 PM ET.\n\nGolfers who serve in non-playing roles (e.g. vice captains, advisors, or other support roles) and are not part of the active playing roster will not qualify.\n\nThe primary resolution source will be the official announcement by Team USA or the PGA of America. A consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Anthony Davis win the 2025–2026 NBA MVP?",
+    "description": "This market will resolve to \"Yes\" if Anthony Davis is awarded the 2025–26 regular season NBA Most Valuable Player (MVP) Award. Otherwise, this market will resolve to \"No\".\n\nIf the listed player is not announced as a finalist for the 2025–26 NBA MVP award, this market will immediately resolve to \"No\".\n\nThe primary resolution source for this market will be official information from the NBA. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Turkey win UEFA Group E for 2026 FIFA World Cup?",
+    "description": "This is a market to predict which national team will win UEFA Group E in the qualification stage for the 2026 FIFA World Cup.\n\nThis market will resolve to \"Yes\" if the listed national team finishes first in UEFA Group E. Otherwise, it will resolve to \"No\".\n\nIf UEFA Group E of the 2026 FIFA World Cup qualification is cancelled or not completed by May 10, 2026, this market will resolve to \"Other\".\n\nThe primary resolution source will be official information from FIFA. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Trump say \"Genius\" during his AI speech on July 23?",
+    "description": "Donald Trump is scheduled to deliver a speech about Artificial Intelligence on July 23 (see https://www.bloomberg.com/news/articles/2025-07-15/trump-set-to-outline-ai-priorities-in-speech-asserting-us-edge).\n\nThis market will resolve to \"Yes\" if Donald Trump says the listed term during his appearance at this event. Otherwise, the market will resolve to \"No\".\n\nAny usage of the term regardless of context will count toward the resolution of this market.\n\nPluralization/possessive of the term will count toward the resolution of this market, however other forms will NOT count.\n\nInstances where the term is used in a compound word will count regardless of context (e.g. joyful is not a compound word for \"joy,\" however \"killjoy\" is a compounding of the words \"kill\" and \"joy\").\n\nThis market is explicitly about the scheduled event about AI. Speeches, events, or comments that occur outside of this event will not qualify toward this market's resolution. If the event contains a Q&A, it will count toward the resolution of this market.\n\nIf this event is definitively cancelled, or otherwise is not aired by July 23, 2025, 11:59 PM ET, this market will resolve to \"No\".\n\nThe resolution source is the video of the event."
+  },
+  {
+    "ticker": null,
+    "title": "Will Dr Patrick Herminie win the 2025 Seychelles presidential election?",
+    "description": "A presidential election is scheduled to take place in Seychelles on September 27, 2025.\n\nThis market will resolve according to the listed candidate that wins this election.\n\nThis market includes any potential second round. If the result of this election isn't known by April 30, 2026, 11:59 PM ET, the market will resolve to \"Other\".\n\nThis market will resolve based on the result of the election as indicated by a consensus of credible reporting. If there is ambiguity, this market will resolve based solely on the official results as reported by the Seychellois government, specifically the Electoral Commission of Seychelles (ECS) (https://ecs.sc/)."
+  },
+  {
+    "ticker": null,
+    "title": "Will 5 Fed rate cuts happen in 2025?",
+    "description": "The FED interest rates are defined in this market by the upper bound of the target federal funds range. The decisions on the target federal fund range are made by the Federal Open Market Committee (FOMC) meetings.\n\nThis market will resolve to “Yes” if the there are exactly 5 cuts of 25 basis points by the Fed's December meeting (including any cuts made during Dec meeting). Otherwise, this market will resolve to “No.”\n\nThis market may resolve to \"Yes\" immediately after the statement from the Fed's December 2025 meeting has been released if there has been exactly 5 rate cuts by then.\n\nFor example, if the FED cuts rates by 50 bps after a meeting, it would be considered 2 cuts (of 25 bps each). If there are 6 or more rate cuts at any point before this market's resolution date, this market will resolve to \"No\".\n\nNote that cuts between 1-24 bps (inclusive) will also be considered 1 rate cut.\n\nThe resolution source for this market will be FOMC statements after meetings scheduled in 2025 according to the official calendar: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm. The level and change of the target federal funds rate is also published at the official website of the Federal Reserve at https://www.federalreserve.gov/monetarypolicy/openmarket.htm."
+  },
+  {
+    "ticker": null,
+    "title": "Will Derek Gee finish in the top 10 at the 2025 Tour de France?",
+    "description": "This market will resolve to \"Yes\" if the listed rider finishes in the top ten at the Tour de France 2025. Otherwise, this market will resolve to \"No\". \n\nIf the Tour de France 2025 is permanently canceled or has not been completed by December 31, 2025, 11:59 PM, this market will resolve to “No”.\n\nIf two or more riders are tied, the official ranking provided by the ASO will be used to determine the top 10.\n\nThe primary resolution source for this market will be the Tour de France official website (https://www.letour.fr/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "MLS: Will New England vs. CF Montreal end in a draw?",
+    "description": "In the upcoming MLS soccer, scheduled for July 25 at 7:30 PM ET,\nIf the game ends in a draw, this market will resolve to “Yes”. Otherwise, this market will resolve to “No”.\nIf the game is postponed, this market will remain open until the game has been completed.\nIf the game is canceled entirely, with no make-up game, this market will resolve to “Yes”."
+  },
+  {
+    "ticker": null,
+    "title": "Will 7 Fed rate cuts happen in 2025?",
+    "description": "The FED interest rates are defined in this market by the upper bound of the target federal funds range. The decisions on the target federal fund range are made by the Federal Open Market Committee (FOMC) meetings.\n\nThis market will resolve to “Yes” if the there are exactly 7 cuts of 25 basis points by the Fed's December meeting (including any cuts made during Dec meeting). Otherwise, this market will resolve to “No.”\n\nThis market may resolve to \"Yes\" immediately after the statement from the Fed's December 2025 meeting has been released if there has been exactly 7 rate cuts by then.\n\nFor example, if the FED cuts rates by 50 bps after a meeting, it would be considered 2 cuts (of 25 bps each). If there are 8 or more rate cuts at any point before this market's resolution date, this market will resolve to \"No\".\n\nNote that cuts between 1-24 bps (inclusive) will also be considered 1 rate cut.\n\nThe resolution source for this market will be FOMC statements after meetings scheduled in 2025 according to the official calendar: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm. The level and change of the target federal funds rate is also published at the official website of the Federal Reserve at https://www.federalreserve.gov/monetarypolicy/openmarket.htm."
+  },
+  {
+    "ticker": null,
+    "title": "Will Russia capture Dorozhnje by August 31?",
+    "description": "This market will resolve to “Yes” if, according to the ISW map, Russia captures the Dorozhnje railway station located in Donetsk Oblast by August 31, 2025, at 11:59 PM ET.\n\nThe railroad station will be considered captured if any part of the train station icon is shaded red on the ISW map (https://storymaps.arcgis.com/stories/36a7f6a6f5a9448496de641cf64bd375) by the resolution date. If the area is not shaded red by August 31, 2025, 11:59 PM ET, the market will resolve to “No”.\n\nIf Russia comes into control of this territory as a result of a negotiated settlement, this will qualify for a 'Yes' resolution, regardless of whether it is shaded red in the ISW map. An announcement of a negotiated settlement which gives Russia de jure control will not qualify. Actual control must be established.\n\nOnce Russia captures the railway station, any subsequent loss of control will not be considered towards the resolution of this market.\n\nTrain Station Location: https://polymarket-upload.s3.us-east-2.amazonaws.com/dorozhnie+train+station+zoom.png\n\nTrain station Location in Dorozhnje: https://polymarket-upload.s3.us-east-2.amazonaws.com/dorozhnie+train+station.png\n\nDorozhnje location: https://polymarket-upload.s3.us-east-2.amazonaws.com/dorozhnie.png\n\nLocation on Google maps: https://maps.app.goo.gl/2EoGpWbL1pks3U2S9\n\nThe primary resolution source for this market will be the ISW Ukraine map. If the ISW map is rendered unavailable, information from DeepStateMap (https://deepstatemap.live/) may be used. If information from both the ISW and DeepStateMap are rendered permanently unavailable, a consensus of credible reporting may be used.\n\nNote: Any temporary glitches or errors in the map will not be considered."
+  },
+  {
+    "ticker": null,
+    "title": "Will The White Lotus win the Emmy for Outstanding Drama Series?",
+    "description": "The 77th Primetime Emmy Awards, given by the Academy of Television Arts & Sciences, honor the best in American prime time television programming aired between June 1, 2024, until May 31, 2025. The awards ceremony is scheduled for September 14, 2025, at the Peacock Theater in Downtown Los Angeles, California\n\nThis market will resolve according to the title which wins the Emmy for Outstanding Drama Series. \n\nIf for any reason no winner is declared by October 31, 2025, 11:59 PM ET, or in case of overall cancellation or a tie for winner, this market will resolve in favor of the nominated film which comes first in alphabetical order.\n\nThe primary resolution source for this market will be official information from the Academy of Television Arts & Sciences and the Emmys, including data from their websites (e.g. https://theemmys.tv/, https://www.televisionacademy.com/) and the live broadcast of the award ceremony, however a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Obama federally charged in 2025?",
+    "description": "This market will resolve to \"Yes\" if the United States federal government formally charges or announces a criminal indictment of Barack Obama by December 31, 2025 ET. Otherwise, this market will resolve to \"No\".\n\nFor the purposes of this market the District of Columbia and any county, municipality, or other subdivision of a State shall be included within the definition of a State.\n\nThe primary resolution source for this market will be official information from US governmental sources, however a wide consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will anyone say \"Operating Margin\" during the Q2 2025 Google earnings call?",
+    "description": "The Google Q2 earnings call is scheduled to take place on July 23, 2025. (https://abc.xyz/2025-q2-earnings-call/).\n\nThis market will resolve to \"Yes\" if the listed term is mentioned by anyone during this event. Otherwise, the market will resolve to \"No\".\n\nAny usage of the term regardless of context will count toward the resolution of this market.\n\nPluralization/possessive of the term will count toward the resolution of this market, however other forms will NOT count.\n\nInstances where the term is used in a compound word will count regardless of context (e.g. joyful is not a compound word for \"joy,\" however \"killjoy\" is a compounding of the words \"kill\" and \"joy\").\n\nIf this event contains a Q&A, it will count toward the resolution of this market.\n\nIf this event is definitively cancelled, or otherwise is not aired by July 23, 2025, 11:59 PM ET, this market will resolve to \"No\".\n\nThe resolution source will be audio of the event."
+  },
+  {
+    "ticker": null,
+    "title": "US-Iran nuclear deal before August?",
+    "description": "This market will resolve to \"Yes\" if an official agreement over Iranian nuclear research and/or nuclear weapon development, defined as a publicly announced mutual agreement, is reached between the United States and Iran between June 10, and July 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to “No”.\n\nOnly deals which are officially announced by both parties will qualify. Informal announcements which do not constitute a finalized agreement will not count.\n\nIf such an agreement is officially reached before the resolution date, this market will resolve to \"Yes\", regardless of if/when the agreement goes into effect.\n\nAgreements that include the United States and Iran as parties, even if they also involve other countries (e.g., a multilateral deal like the JCPOA), will qualify for resolution.\n\nThe primary resolution source for this market will be an official announcement by the United States and/or the Islamic Republic of Iran, however an overwhelming consensus of credible reporting confirming an agreement has been reached will also qualify."
+  },
+  {
+    "ticker": null,
+    "title": "Will Doug Collins be the first to leave the Trump Cabinet in 2025?",
+    "description": "This market will resolve according to the next individual that it is announced will leave the Trump Cabinet, or otherwise ceases to be a member of administration. If no one leaves by December 31, 2025, 11:59 PM ET, this market will resolve to “None in 2025”.\n\nAn announcement of an individual's resignation/removal before this market's end date will immediately resolve this market to \"Yes\", regardless of when the announced resignation/removal goes into effect.\n\nIf multiple individuals announce departures or are removed at the same time, the market will resolve to the individual who actually leaves office first. If they leave simultaneously, the market will resolve to the individual whose last name is alphabetically first.\n\nFor the purposes of this market, the Cabinet includes Vice President, the heads of the 15 executive departments, as well as the Administrator of the Environmental Protection Agency (EPA), the President’s Chief of Staff, the Director of National Intelligence (DNI), the Director of the Office of Management and Budget (OMB), the Director of the Central Intelligence Agency (CIA), the United States Trade Representative (USTR), the Ambassador to the United Nations, the Chair of the Council of Economic Advisers (CEA), and the Administrator of the Small Business Administration (SBA). Acting officials serving in these roles are not included. The Director of the Office of Science and Technology Policy (OSTP) is not considered Cabinet-level under the current Trump administration and is excluded from this market.\n\nAn individual will be considered to have left the Cabinet if they resign from or are removed from any Cabinet-level position, even if they are subsequently appointed to a different Cabinet-level role.\n\nIf a candidate who is not already listed, assumes a listed cabinet position they will be added to the market. However, candidates who have merely been nominated for a cabinet position (e.g. Mike Waltz) will not be considered to have left, even if their nomination is rejected or withdrawn. \n\nThe primary resolution source will be official information from the Trump administration, however a consensus of credible reopening may also be used.\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will the Sacramento Kings win the 2026 NBA Finals?",
+    "description": "This market will resolve to “Yes” if the Sacramento Kings win the 2026 NBA Finals. Otherwise, this market will resolve to “No”.\n\nThis market will resolve to “No” if it becomes impossible for this team to win the 2026 NBA Finals based off the rules of the NBA.\n\nThe resolution source for this market will be information from the NBA."
+  },
+  {
+    "ticker": null,
+    "title": "Will Trump agree to a tariff agreement with European Union in July?",
+    "description": "This market will resolve to \"Yes\" if an official agreement over tariffs, defined as a publicly announced mutual agreement, is reached between the United States and the listed country/entity between July 1, and July 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to “No”.\n\nIf such an agreement is officially reached before the resolution date, this market will resolve to \"Yes\", regardless of if/when the agreement goes into effect.\n\nCountry-specific tariff reductions and tariff exemption extensions which are officially announced by the Trump administration will qualify if they reflect a bilateral agreement. However, tariff exemptions which are announced as part of a class of exemptions and do not reflect individual deals - such as Trump’s April 9 pause on all reciprocal tariffs other than those on China - will not qualify (see: https://www.whitehouse.gov/presidential-actions/2025/04/modifying-reciprocal-tariff-rates-to-reflect-trading-partner-retaliation-and-alignment/).  \n\nInformal and unilateral announcements which do not constitute a finalized agreement will not count.\n\nTrade agreements on minerals, critical supply chains, or other trade cooperation areas, will not alone qualify.\n\nAgreements that include the United States and the listed country/entity as parties, even if they also involve other countries will qualify for resolution.\n\nThe primary resolution source for this market will be a consensus of credible reporting confirming an agreement has been reached.\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Joao Almeida win the Tour de France 2025?",
+    "description": "This market will resolve to \"Yes\" if Joao Almeida wins the Tour de France 2025. Otherwise, this market will resolve to \"No\".\n\nIf the Tour de France 2025 is permanently canceled or has not been completed by October 1, 2025, 11:59 PM, this market will resolve to “Other”.\n\nThe primary resolution source for this market will be the Tour de France official website (https://www.letour.fr/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "Nuclear weapon detonation in 2025?",
+    "description": "This market will resolve to \"Yes\" if a nuclear weapon is detonated anywhere in the world between January 1  and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nFor the purpose of this market's resolution, any detonation of a nuclear weapon anywhere on the planet Earth or in space will be sufficient to trigger a \"Yes\" resolution. This includes offensive usages, nuclear tests, and accidental detonations.\n\nUse/launch of a nuclear weapon that fails to detonate, a fake weapon that never detonates, or a dirty bomb that distributes radioactive material by means of a conventional explosion are not sufficient to trigger a \"Yes\" resolution of this market. Only a successful nuclear detonation will result in a \"Yes\" resolution.\n\nThis market may resolve to \"Yes\" as soon as a nuclear detonation is confirmed by a preponderance of credible reporting.\n\nFor the purpose of this market's resolution, determination as to whether a detonation was nuclear will be made by a preponderance of credible reporting.\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Maurice Kamto win the Cameroon Presidential Election?",
+    "description": "The 2025 Cameroonian presidential election is scheduled to occur on October 5, 2025.\n\nThis market will resolve to the individual who wins the next Cameroonian presidential election.\n\nIf the result of this election isn't known by June 30, 2026, 11:59 PM ET, the market group will resolve to \"Other\".\n\nThis market will resolve based off the official announcement of the election results from the Cameroonian Government, specifically Elections Cameroon (ELECAM). In the case this election is contested, the final decision of the Constitutional Council of Cameroon will be this market's resolution source."
+  },
+  {
+    "ticker": null,
+    "title": "Will Zohran Mamdani win the 2025 NYC mayoral election?",
+    "description": "The 2025 New York City mayoral election will be held on November 4, 2025, to elect the mayor of New York City.\n\nThis market will resolve according to the candidate candidate that wins the election.\n\nThe primary resolution source for this market will be a consensus of credible reporting, however if there is any ambiguity in the results this market will resolve according to official information from New York City."
+  },
+  {
+    "ticker": null,
+    "title": "Will the Ravens win Super Bowl 2026?",
+    "description": "This market will resolve to \"Yes\" if the Baltimore Ravens win Super Bowl LX. Otherwise, this market will resolve to \"No\".\n\nIf at any point it becomes impossible for this team to win the Super Bowl based on the rules of the NFL (e.g. they are eliminated in the playoff bracket), this market will resolve immediately to \"No\"."
+  },
+  {
+    "ticker": null,
+    "title": "Will Solana dip to $90 before 2026?",
+    "description": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for Solana (SOL/USDT) between July 10, 2025, 10:00 and December 31, 2025, 23:59 in the ET timezone has a final \"Low\" price equal to or lower than the price specified in the title. Otherwise, this market will resolve to \"No.\"\n\nThe resolution source for this market is Binance, specifically the SOL/USDT \"Low\" prices available at https://www.binance.com/en/trade/SOL_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance SOL/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market."
+  },
+  {
+    "ticker": null,
+    "title": "Fed rate cut by July meeting?",
+    "description": "This market will resolve to “Yes” if the upper bound of the target federal funds rate is decreased at any point between July 15 and the completion of the Federal Open Market Committee (FOMC) meeting for July 2025, currently scheduled for July 29 - 30. Otherwise, this market will resolve to “No”.\n\nIf no July meeting takes place by August 7, 2025, 11:59 PM ET,  and no qualifying rate cut is announced, this market will resolve to \"No\". \nEmergency rate cuts will qualify.\n\nThe primary resolution source for this market will be the official website of the Federal Reserve (https://www.federalreserve.gov/monetarypolicy/openmarket.htm), however a consensus of credible reporting may also be used.\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Giannis Antetokounmpo be traded to the Rockets?",
+    "description": "This market will resolve to the NBA team that officially acquires Giannis Antetokounmpo in a trade from the Milwaukee Bucks before October 22, 2025, 11:59 PM ET.\n\nIf Giannis Antetokounmpo is cut, retires, is not on an NBA roster as of the resolution date, or otherwise remains on the Bucks through October 22, 2025, 11:59 this market will resolve to \"Not Traded\".\n\nThe primary resolution source for this market will be official information from the Milwaukee Bucks and/or the acquiring team, but a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Ethereum Up or Down - July 23, 1PM ET",
+    "description": "This market will resolve to \"Up\" if the close price is greater than or equal to the open price for the ETH/USDT 1 Hour candle that begins on the time and date specified in the title. Otherwise, this market will resolve to \"Down\".\n\nThe resolution source for this market is information from Binance, specifically the ETH/USDT pair (https://www.binance.com/en/trade/ETH_USDT). The close « C » and open « O » displayed at the top of the graph for the relevant \"1H\" candle will be used once the data for that candle is finalized.\n\nPlease note that this market is about the price according to Binance ETH/USDT, not according to other sources or spot markets."
+  },
+  {
+    "ticker": null,
+    "title": "Ethereum Up or Down - July 23, 3PM ET",
+    "description": "This market will resolve to \"Up\" if the close price is greater than or equal to the open price for the ETH/USDT 1 Hour candle that begins on the time and date specified in the title. Otherwise, this market will resolve to \"Down\".\n\nThe resolution source for this market is information from Binance, specifically the ETH/USDT pair (https://www.binance.com/en/trade/ETH_USDT). The close « C » and open « O » displayed at the top of the graph for the relevant \"1H\" candle will be used once the data for that candle is finalized.\n\nPlease note that this market is about the price according to Binance ETH/USDT, not according to other sources or spot markets."
+  },
+  {
+    "ticker": null,
+    "title": "Ethereum Up or Down - July 23, 10AM ET",
+    "description": "This market will resolve to \"Up\" if the close price is greater than or equal to the open price for the ETH/USDT 1 Hour candle that begins on the time and date specified in the title. Otherwise, this market will resolve to \"Down\".\n\nThe resolution source for this market is information from Binance, specifically the ETH/USDT pair (https://www.binance.com/en/trade/ETH_USDT). The close « C » and open « O » displayed at the top of the graph for the relevant \"1H\" candle will be used once the data for that candle is finalized.\n\nPlease note that this market is about the price according to Binance ETH/USDT, not according to other sources or spot markets."
+  },
+  {
+    "ticker": null,
+    "title": "MLS: Will Houston vs. LA Galaxy end in a draw?",
+    "description": "In the upcoming MLS soccer, scheduled for July 25 at 8:30 PM ET,\nIf the game ends in a draw, this market will resolve to “Yes”. Otherwise, this market will resolve to “No”.\nIf the game is postponed, this market will remain open until the game has been completed.\nIf the game is canceled entirely, with no make-up game, this market will resolve to “Yes”."
+  },
+  {
+    "ticker": null,
+    "title": "Will Harry Styles perform during the Super Bowl LX halftime show?",
+    "description": "This market will resolve to \"Yes\" if Harry Styles performs live and in person during the Super Bowl LX halftime show currently scheduled for February 8, 2026. Otherwise, this market will resolve to \"No.\"\n\nIf this event is cancelled or otherwise delayed beyond March 31, 2026, 11:59 PM ET, this market will resolve to \"No\".\n\nThe primary resolution source for this market will be footage of the Super Bowl LIX halftime show, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Lenny Martinez finish in the top 10 at the 2025 Tour de France?",
+    "description": "This market will resolve to \"Yes\" if the listed rider finishes in the top ten at the Tour de France 2025. Otherwise, this market will resolve to \"No\". \n\nIf the Tour de France 2025 is permanently canceled or has not been completed by December 31, 2025, 11:59 PM, this market will resolve to “No”.\n\nIf two or more riders are tied, the official ranking provided by the ASO will be used to determine the top 10.\n\nThe primary resolution source for this market will be the Tour de France official website (https://www.letour.fr/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "Jerome Powell out as Fed Chair by July 31?",
+    "description": "This market will resolve to “Yes” if Jerome Powell ceases to be the Chair of the U.S. Federal Reserve for any period of time between July 15,  and July 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to “No”.\n\nThe resolution source for this market will be information from the U.S. Government however a consensus of credible reporting will also suffice.\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Zach Kirkhorn be announced as the next CEO of Tesla?",
+    "description": "This market will resolve according to the first individual who is officially announced as the successor to Elon Musk as CEO of Tesla by December 31, 2025. \n\nAn announcement of a successor will be sufficient for a \"Yes\" resolution regardless of whether the announced replacement actually becomes the next CEO of Tesla.\n\nThe resolution source will be public statements from Tesla."
+  },
+  {
+    "ticker": null,
+    "title": "Will Pope Leo XIV be TIME's Person of the Year for 2025?",
+    "description": "If listed person/thing is named as TIME's Person of the Year for 2025, this market will resolve to \"Yes\". Otherwise, this market will resolve to \"No\".\n\nThis market will resolve to \"Yes\" if listed person is named TIME's Person of the Year either alone or in conjunction with any other person or thing which is not named in this market, so long as the term is explicitly named. \n\nFor example, if the Person of the Year is \"Donald Trump and the MAGA movement\", this would qualify to resolve this market to “Trump”. However if the Person of the Year is \"The MAGA movement\", this would not qualify to resolve this market to “Trump” regardless of whether Trump is depicted on the cover. \n\nIf two or more people or things which are named in this market are named TIME's Person of the Year, this market will resolve in favor of whichever person or thing is listed first. For example if TIME's Person of the Year is “Joe Biden and Kamala Harris”, the market for Joe Biden would resolve to “Yes” and the market for Kamala Harris would resolve to “No”. \n\nThis market will resolve based on Time's cover. Other Time webpages which differ from the cover will not be considered.\n\nThis market can resolve after the 2025 TIME's Person of the Year is announced by TIME magazine. If for any reason the 2025 TIME's Person of the Year is not announced by January 31, 2026 11:59 PM ET, this market will resolve to \"No\".\n\nNote: this event is mutually exclusive.\n\n"
+  },
+  {
+    "ticker": null,
+    "title": "Israel withdraws from Gaza in 2025?",
+    "description": "This market will resolve to \"Yes\" if Israel announces it has ceased all ground operations within and has withdrawn all ground forces from Gaza between January 1 and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nFor this market to resolve to \"Yes\" it is sufficient that Israel announces its ground forces have withdrawn into or behind intended buffer zones, even if that zone is established on internationally recognized Palestinian territory.\n\nThe primary resolution source for this market will be information from the Israeli government, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will the New York Liberty win the 2025 WNBA Championship?",
+    "description": "This market will resolve to “Yes” if the listed team wins the 2025 WNBA Finals. Otherwise, this market will resolve to “No”.\n\nIf at any point it becomes impossible for this team to win the 2025 WNBA Finals based on the rules of the WNBA (e.g., they are eliminated in the playoff bracket), this market will resolve immediately to “No”.\n\nThe primary resolution source for this market is official information from the WNBA."
+  },
+  {
+    "ticker": null,
+    "title": "MLS: Will Portland beat LAFC?",
+    "description": "In the upcoming MLS soccer game, scheduled for July 25 at 10:30 PM ET,\nIf Portland Timbers wins, this market will resolve to “Yes”.\nOtherwise this market will resolve to \"No\".\nIf the game is postponed, this market will remain open until the game has been completed.\nIf the game is canceled entirely, with no make-up game, this market will resolve “No”."
+  },
+  {
+    "ticker": null,
+    "title": "Will Emmanuel Macron be the first leader out in 2025?",
+    "description": "This market will resolve according to the first individual that ceases to occupy their listed office.\n\nAn announcement of a resignation/removal, or a scheduled departure from office due to the outcome of an election will not alone qualify. \n\nOnly permanent removal from office will qualify for resolution. Temporary removals, such as impeachment suspensions (e.g., Yoon Suk Yeol's recent impeachment), temporary invocation of the 25th Amendment, or any similar provisional transfers of power, will not count. \n\nAdditionally, if an individual continues in a caretaker or interim role (e.g., Gabriel Attal remaining as caretaker Prime Minister of France), they will not be considered to have ceased occupying the office for the purposes of this market.\n\nIf this criteria has not been met for any of  the listed individuals by December 31, 2025, 11:59 PM ET, this market will resolve to “None in 2025”.  No additional individuals will be added to this market after its creation. \n\nThe resolution source for this market will be a consensus of credible reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will Powell say \"Trump\" during July Press Conference?",
+    "description": "Jerome Powell is currently scheduled to give an FOMC Introductory Statement and press conference on July 30, 2025, at 2:30 PM ET. This market pertains to his Introductory Statement as well as the following Q&A session.\n\nThis market will resolve to \"Yes\" if Powell says the listed term during the FOMC Press Conference. Otherwise, this market will resolve to \"No\".\n\nAny usage of the word regardless of context will count toward the resolution of this market.\n\nPluralization/possessive of the word will count toward the resolution of this market, however other forms will NOT count.\n\nInstances where the term is used in a compound word will count regardless of context (e.g. joyful is not a compound word for \"joy,\" however \"killjoy\" is a compounding of the words \"kill\" and \"joy\").\n\nIf no such statement happens by July 30, 2025, 11:59 PM ET, this market will resolve to \"No\".\n\nThe resolution source will be video and transcripts of the FOMC Press conference."
+  },
+  {
+    "ticker": null,
+    "title": "Will Brice Turang lead the MLB in steals?",
+    "description": "This market will resolve to \"Yes\" if Brice Turang has the greatest number of steals of any player in the 2025 MLB Regular season. Otherwise, this market will resolve to \"No\".\n\nIn the case of a tie between this player and another player(s) for the most steals in the MLB Regular Season, this market will resolve in favor of the player who played the higher number of games. If there is still a tie, this market will resolve in favor of the player whose listed last name comes first alphabetically (i.e. in the case of a tie, Alonso would resolve to “Yes”, Soto would resolve to “No”).\n\nThe primary resolution source for this market will be official information from the MLB. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Pierre Gasly win the 2025 F1 Belgian Grand Prix Pole?",
+    "description": "This market will resolve according to the driver who achieves pole position at the 2025 F1 Belgian Grand Prix, scheduled for July 27, 2025.\n\nIf the 2025 F1 Belgian Grand Prix is canceled or rescheduled to a date after August 14, 2025, this market will resolve to “Other.”\n\nThis market will resolve in favor of the driver who is officially recognized by Formula 1 as having set the fastest time during the qualifying session for the 2025 F1 Belgian Grand Prix. The market will be settled based on the FIA’s official qualifying results, regardless of any subsequent penalties, disqualifications, or changes to the starting grid. For example, if a driver sets the fastest qualifying time but later receives a grid penalty or is moved down the starting order, the market will still resolve to \"Yes\" for that driver.\n\nThe resolution source will be the official Formula 1 website and credible sports news reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will Justin Bieber perform during the Super Bowl LX halftime show?",
+    "description": "This market will resolve to \"Yes\" if Justin Bieber performs live and in person during the Super Bowl LX halftime show currently scheduled for February 8, 2026. Otherwise, this market will resolve to \"No.\"\n\nIf this event is cancelled or otherwise delayed beyond March 31, 2026, 11:59 PM ET, this market will resolve to \"No\".\n\nThe primary resolution source for this market will be footage of the Super Bowl LIX halftime show, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Ben O'Connor finish in the top 10 at the 2025 Tour de France?",
+    "description": "This market will resolve to \"Yes\" if the listed rider finishes in the top ten at the Tour de France 2025. Otherwise, this market will resolve to \"No\". \n\nIf the Tour de France 2025 is permanently canceled or has not been completed by December 31, 2025, 11:59 PM, this market will resolve to “No”.\n\nIf two or more riders are tied, the official ranking provided by the ASO will be used to determine the top 10.\n\nThe primary resolution source for this market will be the Tour de France official website (https://www.letour.fr/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "Will McLaren finish fifth in the 2025 F1 Constructors' Championship?",
+    "description": "This market will resolve according to the team who finishes fifth in the Constructor’s Championship for the 2025 F1 season.\n\nIn the case of a tie between two teams, this market will resolve in favor of the team whose listed name comes first alphabetically.\n\nAs soon as the results for the final scheduled race of the 2025 F1 season are known, this market will resolve.\n\nIf at any point it becomes impossible for this team to finish in fifth place in the 2025 F1 Constructor's Championship based on the rules of F1 (e.g., they are mathematically eliminated from contention), this market will resolve to “No.”\n\nIf the F1 season is permanently canceled or has not been completed by February 28, 2026, 11:59 PM, this market will resolve to “Other”.\n\nThe resolution source for this market will be information from F1."
+  },
+  {
+    "ticker": null,
+    "title": "Yankees vs. Blue Jays",
+    "description": "In the upcoming MLB game, scheduled for July 23 at 7:07PM ET:\nIf the New York Yankees win, the market will resolve to “Yankees”.\nIf the Toronto Blue Jays win, the market will resolve to “Blue Jays”.\nIf the game is postponed, this market will remain open until the game has been completed.\nIf the game is canceled entirely, with no make-up game, this market will resolve 50-50.\nTo know when a postponed game will be played, please check the home team's schedule on MLB.com for the listed team and look for the game described as a makeup game."
+  },
+  {
+    "ticker": null,
+    "title": "Will Powell say \"Good afternoon\" during July Press Conference?",
+    "description": "Jerome Powell is currently scheduled to give an FOMC Introductory Statement and press conference on July 30, 2025, at 2:30 PM ET. This market pertains to his Introductory Statement as well as the following Q&A session.\n\nThis market will resolve to \"Yes\" if Powell says the listed term during the FOMC Press Conference. Otherwise, this market will resolve to \"No\".\n\nAny usage of the word regardless of context will count toward the resolution of this market.\n\nPluralization/possessive of the word will count toward the resolution of this market, however other forms will NOT count.\n\nInstances where the term is used in a compound word will count regardless of context (e.g. joyful is not a compound word for \"joy,\" however \"killjoy\" is a compounding of the words \"kill\" and \"joy\").\n\nIf no such statement happens by July 30, 2025, 11:59 PM ET, this market will resolve to \"No\".\n\nThe resolution source will be video and transcripts of the FOMC Press conference."
+  },
+  {
+    "ticker": null,
+    "title": "Citigroup launches a USD stablecoin in 2025?",
+    "description": "This market will resolve to \"Yes\" if Citigroup launches a stablecoin pegged to the US Dollar by December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nThe stablecoin must be officially announced and made available for transactions by Citigroup or a subsidiary under its direct control.\n\nThe token must be actively transferrable and/or tradable; announcements alone will not qualify.\n\nThe primary resolution source for this market will be information from Citigroup and its representatives, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will the price of Ethereum be between $3500 and $3600 on July 25?",
+    "description": "This market will resolve according to the final \"Close\" price of the Binance 1 minute candle for ETH/USDT 12:00 in the ET timezone (noon) on the date specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the ETH/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/ETH_USDT with \"1m\" and \"Candles\" selected on the top bar.\n\nIf the reported value falls exactly between two brackets, then this market will resolve to the higher range bracket.\n\nPlease note that this market is about the price according to Binance ETH/USDT, not according to other sources or spot markets."
+  },
+  {
+    "ticker": null,
+    "title": "Will Oprah Winfrey be named in newly released Epstein files?",
+    "description": "This market will resolve to \"Yes\" if the Trump Administration (including any federal court) publicly releases previously unreleased files pertaining to the illegal activities of Jeffrey Epstein which contain any mention of the listed individual between July 16 and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nOnly previously unreleased files which contain novel material not previously available to the public will qualify. Documents that are merely re-released, have had redactions removed, repackaged, or newly publicized versions of already available information do not qualify.\n\nAny mention of the listed individual in connection with Jeffrey Epstein will qualify, regardless of if connected to nefarious or illegal activities.\n\nThe primary resolution source for this market will be a consensus of credible reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will Richard Carapaz win the Tour de France 2025?",
+    "description": "This market will resolve to \"Yes\" if Richard Carapaz wins the Tour de France 2025. Otherwise, this market will resolve to \"No\".\n\nIf the Tour de France 2025 is permanently canceled or has not been completed by October 1, 2025, 11:59 PM, this market will resolve to “Other”.\n\nThe primary resolution source for this market will be the Tour de France official website (https://www.letour.fr/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "Will Trump meet with Pope Leo XIV in 2025?",
+    "description": "This market will resolve to \"Yes\" if the listed individual meets with Donald Trump between May 8, and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nA meeting is defined as any encounter where both listed individual and Trump are present and interact with each other in person.\n\nThe resolution source will be a consensus of credible reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will the Minnesota Twins win the AL Central Division?",
+    "description": "This market will resolve according to the team that wins the 2025 MLB AL Central Division.\n\nIf at any point it becomes impossible for a team to win the AL Central Division based on the rules of the MLB, this market will immediately resolve to “No” for that team.\n\nIf the 2025 MLB season is permanently canceled or has not been completed by March 28, 2026, 11:59 PM ET, this market will resolve to “Other”.\n\nOfficial resolution will be based on the MLB's official standings, as published on MLB.com."
+  },
+  {
+    "ticker": null,
+    "title": "Will Giannis Antetokounmpo win the 2025–2026 NBA MVP?",
+    "description": "This market will resolve to \"Yes\" if Giannis Antetokounmpo is awarded the 2025–26 regular season NBA Most Valuable Player (MVP) Award. Otherwise, this market will resolve to \"No\".\n\nIf the listed player is not announced as a finalist for the 2025–26 NBA MVP award, this market will immediately resolve to \"No\".\n\nThe primary resolution source for this market will be official information from the NBA. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will R win the most seats in the next Norwegian parliamentary election?",
+    "description": "Parliamentary elections are scheduled to be held in Norway on September 8, 2025.\n\nThis market will resolve to the political party that wins the greatest number of seats in the 167th Storting of Norway. \n\nIf voting in the Norwegian election for the 167th Storting does not occur by February 28, 2026, this market will resolve to \"Other\".\n\nIn the case of a tie between this party and any other for the most seats won, this market will resolve in favor of the party whose listed abbreviation comes first in alphabetical order.\n\nThis market's resolution will be based solely on the number of seats won by the named party or coalition.\n\nThis market will resolve based on the result of the election as indicated by a consensus of credible reporting. If there is ambiguity, this market will resolve based solely on the official results as reported by Norway's government (e.g. via https://www.valg.no/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "Will Scott Turner be the first to leave the Trump Cabinet in 2025?",
+    "description": "This market will resolve according to the next individual that it is announced will leave the Trump Cabinet, or otherwise ceases to be a member of administration. If no one leaves by December 31, 2025, 11:59 PM ET, this market will resolve to “None in 2025”.\n\nAn announcement of an individual's resignation/removal before this market's end date will immediately resolve this market to \"Yes\", regardless of when the announced resignation/removal goes into effect.\n\nIf multiple individuals announce departures or are removed at the same time, the market will resolve to the individual who actually leaves office first. If they leave simultaneously, the market will resolve to the individual whose last name is alphabetically first.\n\nFor the purposes of this market, the Cabinet includes Vice President, the heads of the 15 executive departments, as well as the Administrator of the Environmental Protection Agency (EPA), the President’s Chief of Staff, the Director of National Intelligence (DNI), the Director of the Office of Management and Budget (OMB), the Director of the Central Intelligence Agency (CIA), the United States Trade Representative (USTR), the Ambassador to the United Nations, the Chair of the Council of Economic Advisers (CEA), and the Administrator of the Small Business Administration (SBA). Acting officials serving in these roles are not included. The Director of the Office of Science and Technology Policy (OSTP) is not considered Cabinet-level under the current Trump administration and is excluded from this market.\n\nAn individual will be considered to have left the Cabinet if they resign from or are removed from any Cabinet-level position, even if they are subsequently appointed to a different Cabinet-level role.\n\nIf a candidate who is not already listed, assumes a listed cabinet position they will be added to the market. However, candidates who have merely been nominated for a cabinet position (e.g. Mike Waltz) will not be considered to have left, even if their nomination is rejected or withdrawn. \n\nThe primary resolution source will be official information from the Trump administration, however a consensus of credible reopening may also be used.\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Juan Soto lead the MLB in RBI's?",
+    "description": "This market will resolve to \"Yes\" if Juan Soto has the greatest number of RBI's of any player in the 2025 MLB Regular season. Otherwise, this market will resolve to \"No\".\n\nIn the case of a tie between this player and another player(s) for the most RBI's in the MLB Regular Season, this market will resolve in favor of the player who played the higher number of games. If there is still a tie, this market will resolve in favor of the player whose listed last name comes first alphabetically (i.e. in the case of a tie, Alvarez would resolve to “Yes”, Soto would resolve to “No”).\n\nThe primary resolution source for this market will be official information from the MLB. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Bitcoin close above $95K on July 31?",
+    "description": "This market will resolve to \"Yes\" if the Binance 1 minute candle for BTC/USDT 31 July '25 12:00 in the ET timezone (noon) has a final “Close” price higher than the price specified in the outcome title. Otherwise, this market will resolve to \"No\"\n\nThe resolution source for this market is Binance, specifically the BTC/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/BTC_USDT with “1m” and “Candles” selected on the top bar.\n\nPlease note that this market is about the price according to Binance BTC/USDT, not according to other sources or spot markets."
+  },
+  {
+    "ticker": null,
+    "title": "Erdoğan out in 2025?",
+    "description": "This market will resolve to \"Yes\" if the President of the Republic of Türkiye Recep Tayyip Erdoğan is removed from power for any length of time between March 10, and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nErdoğan will be considered to be removed from power if he resigns, is detained, or otherwise loses his position or is prevented from fulfilling his duties as President of Türkiye within this market's timeframe.\n\nThe primary resolution source for this market will be a consensus of credible reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will the U.S. acquire Canadian territory in 2025?",
+    "description": "This market will resolve to \"Yes\" if the United States formally acquires any part of Canadian territory by December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to “No”. \n\nAcquisition must be through official government action, such as annexation, treaty, or legislation.\n\nThe resolution source will be official information from the U.S. government however a consensus of credible reporting may also be used.\n\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Ronald Acuña Jr. win the 2025 NL MVP?",
+    "description": "This market will resolve to \"Yes\" if Ronald Acuña Jr. is awarded the 2025 MLB National League Most Valuable Player (MVP) Award. Otherwise, this market will resolve to \"No\".\n\nIf Ronald Acuña Jr. is not announced as a finalist for the 2025 MLB NL MVP award, this market will immediately resolve to \"No\".\n\nThe primary resolution source for this market will be official information from the MLB. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Luke Combs perform during the Super Bowl LX halftime show?",
+    "description": "This market will resolve to \"Yes\" if Luke Combs performs live and in person during the Super Bowl LX halftime show currently scheduled for February 8, 2026. Otherwise, this market will resolve to \"No.\"\n\nIf this event is cancelled or otherwise delayed beyond March 31, 2026, 11:59 PM ET, this market will resolve to \"No\".\n\nThe primary resolution source for this market will be footage of the Super Bowl LIX halftime show, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will the Chicago White Sox have the best regular season record in the MLB?",
+    "description": "This is a market on which MLB team will have the best regular season record in the 2025 season. \n\nIf multiple teams are tied for the best record, this market will resolve in favor of the team name listed first alphabetically. \n\nThe primary resolution source for this market will be the MLB (https://www.mlb.com)."
+  },
+  {
+    "ticker": null,
+    "title": "NATO/EU troops fighting in Ukraine in 2025?",
+    "description": "This market will resolve to \"Yes\" if active military personnel officially affiliated with any NATO or EU country enter Ukraine for combat-related military purposes directly pertaining to the ongoing conflict with Russia by December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nFor military personnel to qualify toward a \"Yes\" resolution, they must be 1) officially acknowledged as active military by the NATO or EU entity or member state they are affiliated with; 2) be publicly acknowledged by NATO or an EU-affiliated entity to have entered Ukraine for a combat-related military purpose directly pertaining to the ongoing conflict with Russia.\n\nFor military personnel to qualify toward a \"Yes\" resolution they need be active duty and acknowledged as described above. Participation in a combat role is necessary for this market to resolve to \"Yes\" (e.g. military personnel providing training or intelligence support would not qualify toward a \"Yes\" resolution, however drone pilots or infantry directly attacking Russian troops, or soldiers targeting and downing missiles from Ukrainian soil would qualify toward a \"Yes\" resolution).\n\nThe primary resolution source for this market will be official information from NATO, the EU, or member states of either entity, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will anyone say \"Antitrust\" during the Q2 2025 Meta earnings call?",
+    "description": "The Meta Q2 earnings call is scheduled to take place on July 30, 2025. (aboutamazon.com/news/company-news/amazon-earnings-q2-2025-report)\n\nThis market will resolve to \"Yes\" if the listed term is mentioned by anyone during this event. Otherwise, the market will resolve to \"No\".\n\nAny usage of the term regardless of context will count toward the resolution of this market.\n\nPluralization/possessive of the term will count toward the resolution of this market, however other forms will NOT count.\n\nInstances where the term is used in a compound word will count regardless of context (e.g. joyful is not a compound word for \"joy,\" however \"killjoy\" is a compounding of the words \"kill\" and \"joy\").\n\nIf this event contains a Q&A, it will count toward the resolution of this market.\n\nIf this event is definitively cancelled, or otherwise is not aired by July 30, 2025, 11:59 PM ET, this market will resolve to \"No\".\n\nThe resolution source will be audio of the event."
+  },
+  {
+    "ticker": null,
+    "title": "Will Mamdani get over 50% of the vote in the general mayoral election",
+    "description": "The New York City mayoral general election is scheduled to occur on November 4, 2025.\n\nThis market will resolve to \"Yes\" if Zohran Mamdani wins over 50% of the votes cast in the general election for Mayor of New York City in 2025. Otherwise, this market will resolve to \"No\".\n\nIf no general election for Mayor of New York City occurs by February 28, 2026, 11:59 PM ET, or the results are otherwise unknown by that date, this market will resolve to \"No\".\n\nThe primary resolution source for this market will be official information from the New York City Board of Elections, however a consensus of credible reporting may also be used.\n\nIf a recount is initiated before the vote total has been made official, the market will remain open until the recount is completed and the vote is made official."
+  },
+  {
+    "ticker": null,
+    "title": "IEM Cologne: Ninjas in Pyjamas vs. HEROIC",
+    "description": "Ninjas in Pyjamas and HEROIC are scheduled to play each other in the IEM Cologne 2025 Tournament on July 23, 2025.\n\nThis market will resolve to “NIP” if Ninjas in Pyjamas wins against HEROIC in the best of 3 matchup of the IEM Cologne Tournament.\n\nThis market will resolve to “HEROIC” if HEROIC wins against Ninjas in Pyjamas in the best of 3 matchup of the IEM Cologne Tournament.\n\nIf the match ends in a tie, is canceled, or delayed beyond July 30, 2025, this market will resolve to 50-50.\n\nThe resolution source for this market will be official information from HLTV: https://www.hltv.org/events/8230/iem-cologne-2025-stage-1.\n\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will the Phoenix Mercury win the 2025 WNBA Championship?",
+    "description": "This market will resolve to “Yes” if the listed team wins the 2025 WNBA Finals. Otherwise, this market will resolve to “No”.\n\nIf at any point it becomes impossible for this team to win the 2025 WNBA Finals based on the rules of the WNBA (e.g., they are eliminated in the playoff bracket), this market will resolve immediately to “No”.\n\nThe primary resolution source for this market is official information from the WNBA."
+  },
+  {
+    "ticker": null,
+    "title": "Will Sean Duffy be the first to leave the Trump Cabinet in 2025?",
+    "description": "This market will resolve according to the next individual that it is announced will leave the Trump Cabinet, or otherwise ceases to be a member of administration. If no one leaves by December 31, 2025, 11:59 PM ET, this market will resolve to “None in 2025”.\n\nAn announcement of an individual's resignation/removal before this market's end date will immediately resolve this market to \"Yes\", regardless of when the announced resignation/removal goes into effect.\n\nIf multiple individuals announce departures or are removed at the same time, the market will resolve to the individual who actually leaves office first. If they leave simultaneously, the market will resolve to the individual whose last name is alphabetically first.\n\nFor the purposes of this market, the Cabinet includes Vice President, the heads of the 15 executive departments, as well as the Administrator of the Environmental Protection Agency (EPA), the President’s Chief of Staff, the Director of National Intelligence (DNI), the Director of the Office of Management and Budget (OMB), the Director of the Central Intelligence Agency (CIA), the United States Trade Representative (USTR), the Ambassador to the United Nations, the Chair of the Council of Economic Advisers (CEA), and the Administrator of the Small Business Administration (SBA). Acting officials serving in these roles are not included. The Director of the Office of Science and Technology Policy (OSTP) is not considered Cabinet-level under the current Trump administration and is excluded from this market.\n\nAn individual will be considered to have left the Cabinet if they resign from or are removed from any Cabinet-level position, even if they are subsequently appointed to a different Cabinet-level role.\n\nIf a candidate who is not already listed, assumes a listed cabinet position they will be added to the market. However, candidates who have merely been nominated for a cabinet position (e.g. Mike Waltz) will not be considered to have left, even if their nomination is rejected or withdrawn. \n\nThe primary resolution source will be official information from the Trump administration, however a consensus of credible reopening may also be used.\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Morgan Wallen perform during the Super Bowl LX halftime show?",
+    "description": "This market will resolve to \"Yes\" if Morgan Wallen performs live and in person during the Super Bowl LX halftime show currently scheduled for February 8, 2026. Otherwise, this market will resolve to \"No.\"\n\nIf this event is cancelled or otherwise delayed beyond March 31, 2026, 11:59 PM ET, this market will resolve to \"No\".\n\nThe primary resolution source for this market will be footage of the Super Bowl LIX halftime show, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Solana above $180 on July 23?",
+    "description": "This market will resolve to \"Yes\" if the Binance 1 minute candle for SOL/USDT 12:00 in the ET timezone (noon) on the date specified in the title has a final “Close” price higher than the price specified in the title. Otherwise, this market will resolve to \"No\".\n\nThe resolution source for this market is Binance, specifically the SOL/USDT \"Close\" prices currently available at https://www.binance.com/en/trade/SOL_USDT with “1m” and “Candles” selected on the top bar.\n\nPlease note that this market is about the price according to Binance SOL/USDT, not according to other sources or spot markets.\n\nPrice precision is determined by the number of decimal places in the source."
+  },
+  {
+    "ticker": null,
+    "title": "Will Cody Bellinger lead the MLB in Home Runs?",
+    "description": "This market will resolve to \"Yes\" if Cody Bellinger hits the greatest number of home runs of any player in the 2025 MLB Regular season. Otherwise, this market will resolve to \"No\".\n\nIn the case of a tie between this player and another player(s) for the most home runs hit in the MLB Regular Season, this market will resolve in favor of the player who played the higher number of games. If there is still a tie, this market will resolve in favor of the player whose listed last name comes first alphabetically (i.e. in the case of a tie, Alonso would resolve to “Yes”, Soto would resolve to “No”).\n\nThe primary resolution source for this market will be official information from the MLB. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Uzo Aduba win the Emmy for Outstanding Lead Actress in a Comedy Series?",
+    "description": "The 77th Primetime Emmy Awards, given by the Academy of Television Arts & Sciences, honor the best in American prime time television programming aired between June 1, 2024, until May 31, 2025. The awards ceremony is scheduled for September 14, 2025, at the Peacock Theater in Downtown Los Angeles, California\n\nThis market will resolve according to the person who wins the Emmy for Outstanding Lead Actress in a Comedy Series. \n\nIf for any reason no winner is declared by October 31, 2025, 11:59 PM ET, or in case of overall cancellation or a tie for winner, this market will resolve in favor of the nominated film which comes first in alphabetical order.\n\nThe primary resolution source for this market will be official information from the Academy of Television Arts & Sciences and the Emmys, including data from their websites (e.g. https://theemmys.tv/, https://www.televisionacademy.com/) and the live broadcast of the award ceremony, however a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Herbert Diess be announced as the next CEO of Tesla?",
+    "description": "This market will resolve according to the first individual who is officially announced as the successor to Elon Musk as CEO of Tesla by December 31, 2025. \n\nAn announcement of a successor will be sufficient for a \"Yes\" resolution regardless of whether the announced replacement actually becomes the next CEO of Tesla.\n\nThe resolution source will be public statements from Tesla."
+  },
+  {
+    "ticker": null,
+    "title": "50% copper tariff in effect by August 1?",
+    "description": "On July 10, President Trump announced that the United States would apply a 50% tariff to all copper imports beginning August 1 (see: https://www.bloomberg.com/news/articles/2025-07-10/trump-says-50-tariff-on-copper-imports-to-take-effect-august-1).\n\nThis market will resolve to “Yes” if a general 50% tariff on copper imports into the United States goes into effect for any amount of time by August 1, 2025, 11:59 PM ET. Otherwise, this market will resolve to “No”.\n\nFor the purpose of this market, \"goes into effect\" means the start date for the tariffs must have passed without being further delayed or suspended.\n\nA general tariff that includes item or country specific exceptions will still qualify, as long as a policy of a general 50% tariff on copper imports into the United States goes into effect.\n\nOnly tariffs specifically targeting copper will qualify. For example, a new global tariff (tariffs on all imports into the U.S.) will not count toward this market's resolution.\n\nThis market's primary resolution source will be official information from the Trump administration; however, a consensus of credible information will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Jack Dorsey be the next CEO of X?",
+    "description": "On July 9, X CEO Linda Yaccarino announced she was stepping down. \n\nThis market will resolve according to the first individual who is officially announced as the next permanent successor to Linda Yaccarino as CEO of X Corp. by December 31, 2025.\n\nAn announcement of a successor will be sufficient for a \"Yes\" resolution regardless of whether the announced replacement actually becomes the next CEO of X.\n\nInterim CEOs will not qualify. \n\nThe resolution source will be public statements from X Corp."
+  },
+  {
+    "ticker": null,
+    "title": "Will Alexandria Ocasio-Cortez win the 2028 US Presidential Election?",
+    "description": "The 2028 US Presidential Election is scheduled to take place on November 7, 2028.\n\nThis market will resolve to the person who wins the 2028 US Presidential Election.\n\nThe resolution source for this market is the Associated Press, Fox News, and NBC. This market will resolve once all three sources call the race for the same candidate. If all three sources haven’t called the race for the same candidate by the inauguration date (January 20, 2029) this market will resolve based on who is inaugurated."
+  },
+  {
+    "ticker": null,
+    "title": "Will Gunnar Henderson win the 2025 AL MVP?",
+    "description": "This market will resolve to \"Yes\" if Gunnar Henderson is awarded the 2025 MLB American League Most Valuable Player (MVP) Award. Otherwise, this market will resolve to \"No\".\n\nIf Gunnar Henderson is not announced as a finalist for the 2025 MLB AL MVP award, this market will immediately resolve to \"No\".\n\nThe primary resolution source for this market will be official information from the MLB. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "F1 Belgian Grand Prix: McLaren vs. Ferrari",
+    "description": "This is a market on whether McLaren or Ferrari will earn more constructor points at the 2025 F1 Belgian Grand Prix, scheduled for July 27, 2025. \n\nIf McLaren earns more constructor points, this market will resolve to \"McLaren\".\nIf Ferrari earns more constructor points, this market will resolve to \"Ferrari\". \n\nIf constructor points are tied, the market will resolve in favor of the team with the highest-finishing car at the 2025 F1 Belgian Grand Prix. \n\nIf the 2025 F1 Belgian Grand Prix is cancelled or postponed past August 14, 2025, this market will resolve 50-50.\n\nThe resolution source for this market will be information from F1."
+  },
+  {
+    "ticker": null,
+    "title": "Will Nicolien van Vroonhoven-Kok become the next Prime Minister of the Netherlands?",
+    "description": "The ruling coalition of the Netherlands collapsed on June 3, 2025. New parliamentary elections are scheduled for October 29.\n\nThis market will resolve to the next individual who is officially appointed and sworn in as Prime Minister of the Netherlands following the 2025 parliamentary election.\n\nTo count for resolution, the individual must be formally sworn in. Any interim or caretaker Prime Minister will not count toward the resolution of this market.\n\nIf no such Prime Minister is sworn in by December 31, 2026, 11:59 PM ET, this market will resolve to “Other”.\n\nThe primary resolution source for this market will be official information from the Government of the Netherlands; however, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will the Minnesota Vikings win the NFC North?",
+    "description": "This market will resolve to “Yes” if the Minnesota Vikings win the NFC North in the 2025-2026 NFL Season. Otherwise, this market will resolve to “No”.\n\nIf at any point it becomes impossible for the Minnesota Vikings team to win the NFC North based on the rules of the NFL (e.g., they are mathematically eliminated from finishing first in the division), this market will resolve immediately to “No”."
+  },
+  {
+    "ticker": null,
+    "title": "Will Donald Trump Jr. win the 2028 Republican presidential nomination?",
+    "description": "This market will resolve to “Yes” if the named individual wins and accepts the 2028 nomination of the Republican Party for U.S. president. Otherwise, this market will resolve to “No”.\n\nThe resolution source for this market will be a consensus of official Republican Party sources.\n\nAny replacement of the Republican nominee before election day will not change the resolution of the market."
+  },
+  {
+    "ticker": null,
+    "title": "Will the San Diego Padres win the NL West Division?",
+    "description": "This market will resolve according to the team that wins the 2025 MLB NL West Division.\n\nIf at any point it becomes impossible for a team to win the NL West Division based on the rules of the MLB, this market will immediately resolve to “No” for that team.\n\nIf the 2025 MLB season is permanently canceled or has not been completed by March 28, 2026, 11:59 PM ET, this market will resolve to “Other”.\n\nOfficial resolution will be based on the MLB's official standings, as published on MLB.com."
+  },
+  {
+    "ticker": null,
+    "title": "Will the Connecticut Sun make the playoffs?",
+    "description": "This market will resolve to “Yes” if the listed team makes the 2025 WNBA Playoffs. Otherwise, this market will resolve to “No\".\n\nIf the listed team qualifies for the playoffs early, the market will resolve to \"Yes\". \nIf the listed team is eliminated based on the rules of the competition, the market will resolve to \"No\". \n\nThe resolution source for this market will be official information from the WNBA or a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Fed decreases interest rates by 50+ bps after October 2025 meeting?",
+    "description": "The FED interest rates are defined in this market by the upper bound of the target federal funds range. The decisions on the target federal fund range are made by the Federal Open Market Committee (FOMC) meetings.\n\nThis market will resolve to the amount of basis points the upper bound of the target federal funds rate is changed by versus the level it was prior to the Federal Reserve's October 2025 meeting.\n\nIf the target federal funds rate is changed to a level not expressed in the displayed options, the change will be rounded up to the nearest 25 and will resolve to the relevant bracket. (e.g. if there's a cut/increase of 12.5 bps it will be considered to be 25 bps)\n\nThe resolution source for this market is the FOMC’s statement after its meeting scheduled for October 28 - 29, 2025 according to the official calendar: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm.\n\nThe level and change of the target federal funds rate is also published at the official website of the Federal Reserve at https://www.federalreserve.gov/monetarypolicy/openmarket.htm.\n\nThis market may resolve as soon as the FOMC’s statement for their October meeting with relevant data is issued. If no statement is released by the end date of the next scheduled meeting, this market will resolve to the \"No change\" bracket."
+  },
+  {
+    "ticker": null,
+    "title": "Will Latvia win UEFA Group K for 2026 FIFA World Cup?",
+    "description": "This is a market to predict which national team will win UEFA Group K in the qualification stage for the 2026 FIFA World Cup.\n\nThis market will resolve to \"Yes\" if the listed national team finishes first in UEFA Group K. Otherwise, it will resolve to \"No\".\n\nIf UEFA Group K of the 2026 FIFA World Cup qualification is cancelled or not completed by May 10, 2026, this market will resolve to \"Other\".\n\nThe primary resolution source will be official information from FIFA. However, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will the Chicago White Sox win the AL Central Division?",
+    "description": "This market will resolve according to the team that wins the 2025 MLB AL Central Division.\n\nIf at any point it becomes impossible for a team to win the AL Central Division based on the rules of the MLB, this market will immediately resolve to “No” for that team.\n\nIf the 2025 MLB season is permanently canceled or has not been completed by March 28, 2026, 11:59 PM ET, this market will resolve to “Other”.\n\nOfficial resolution will be based on the MLB's official standings, as published on MLB.com."
+  },
+  {
+    "ticker": null,
+    "title": "Will George Russell finish second in the 2025 Drivers Championship?",
+    "description": "This market will resolve according to the driver that finishes 2nd in the driver standings for the 2025 F1 season. Otherwise, this market will resolve to \"No\".\n\nAs soon as the results for the final scheduled race of the 2025 F1 season are known this market will resolve.\n\nIf at any point it becomes impossible for a listed driver to place 2nd in the driver standings for the 2025 F1 Drivers Championship based on the rules of F1 (e.g., they are mathematically eliminated from contention), this market will resolve to “No”.\n\nIf the F1 season has not been completed by February 28, 2026, 11:59 PM this market will resolve to “Other”.\n\nThe primary resolution source for this market will be official information from Formula 1."
+  },
+  {
+    "ticker": null,
+    "title": "Will France win the 2026 FIFA World Cup?",
+    "description": "This market will resolve according to the national team that wins the 2026 FIFA World Cup.\n\nIf at any point it becomes impossible for this team to win the FIFA World Cup based on the rules of FIFA (e.g., they are eliminated in the knockout stage), this market will resolve immediately to “No”.\n\nIf the 2026 FIFA World Cup is permanently canceled or has not been completed by October 13, 2026, 11:59 PM this market will resolve to “Other”.\n\nThe primary resolution source will be official information from FIFA, however, a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will the Seattle Storm win the 2025 WNBA Championship?",
+    "description": "This market will resolve to “Yes” if the listed team wins the 2025 WNBA Finals. Otherwise, this market will resolve to “No”.\n\nIf at any point it becomes impossible for this team to win the 2025 WNBA Finals based on the rules of the WNBA (e.g., they are eliminated in the playoff bracket), this market will resolve immediately to “No”.\n\nThe primary resolution source for this market is official information from the WNBA."
+  },
+  {
+    "ticker": null,
+    "title": "Will Enric Mas Nicolau finish in the top five at the Tour de France 2025?",
+    "description": "This market will resolve to \"Yes\" if Enric Mas Nicolau finishes in the top five at the Tour de France 2025. Otherwise, this market will resolve to \"No\". \n\nIf the Tour de France 2025 is permanently canceled or has not been completed by December 31, 2025, 11:59 PM, this market will resolve to “No”.\n\nThe primary resolution source for this market will be the Tour de France official website (https://www.letour.fr/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "Will Trump meet with MrBeast in 2025?",
+    "description": "This market will resolve to \"Yes\" if the listed individual meets with Donald Trump between February 18, and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nA meeting is defined as any encounter where both listed individual and Trump are present and interact with each other in person.\n\nThe resolution source will be a consensus of credible reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will Giannis Antetokounmpo be traded to the Mavericks?",
+    "description": "This market will resolve to the NBA team that officially acquires Giannis Antetokounmpo in a trade from the Milwaukee Bucks before October 22, 2025, 11:59 PM ET.\n\nIf Giannis Antetokounmpo is cut, retires, is not on an NBA roster as of the resolution date, or otherwise remains on the Bucks through October 22, 2025, 11:59 this market will resolve to \"Not Traded\".\n\nThe primary resolution source for this market will be official information from the Milwaukee Bucks and/or the acquiring team, but a consensus of credible reporting may also be used."
+  },
+  {
+    "ticker": null,
+    "title": "XRP Up or Down - July 23, 2PM ET",
+    "description": "This market will resolve to \"Up\" if the close price is greater than or equal to the open price for the XRP/USDT 1 Hour candle that begins on the time and date specified in the title. Otherwise, this market will resolve to \"Down\".\n\nThe resolution source for this market is information from Binance, specifically the XRP/USDT pair (https://www.binance.com/en/trade/XRP_USDT). The close « C » and open « O » displayed at the top of the graph for the relevant \"1H\" candle will be used once the data for that candle is finalized.\n\nPlease note that this market is about the price according to Binance XRP/USDT, not according to other sources or spot markets."
+  },
+  {
+    "ticker": null,
+    "title": "Will the US officially declare war on Iran in 2025?",
+    "description": "This market will resolve to \"Yes\" if the United States formally declares war on Iran through an act of Congress between June 21 and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No.\"\n\nTo qualify, Congress must pass a formal declaration of war, consistent with its constitutional authority under Article I, Section 8. Authorizations for the use of military force (AUMFs), executive orders, presidential statements, or military actions do not qualify unless accompanied by a formal declaration of war enacted by Congress and signed into law.\n\nThe resolution source will be a clear consensus of credible reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will Egan Bernal win the Tour de France 2025?",
+    "description": "This market will resolve to \"Yes\" if Egan Bernal wins the Tour de France 2025. Otherwise, this market will resolve to \"No\".\n\nIf the Tour de France 2025 is permanently canceled or has not been completed by October 1, 2025, 11:59 PM, this market will resolve to “Other”.\n\nThe primary resolution source for this market will be the Tour de France official website (https://www.letour.fr/en/)."
+  },
+  {
+    "ticker": null,
+    "title": "Luigi Mangione mistrial?",
+    "description": "This market will resolve to \"Yes\" if a judge declares a mistrial in either of Luigi Mangione's ongoing federal or state cases by December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nA mistrial only needs to be declared in one of Mangione's ongoing cases for this market to resolve to \"Yes\".\n\nIf all ongoing cases as of February 25, 2025 resolve without a mistrial being declared, this market will resolve to \"No\".\n\nThe resolution source will be information from the ruling courts in this case, however a consensus of credible reporting will also be used."
+  },
+  {
+    "ticker": null,
+    "title": "Will Elon cut the budget by at least 5% in 2025?",
+    "description": "In Q4 2024, government expenditures were $7,106,807,000,000 (see https://fred.stlouisfed.org/series/FGEXPND). \n\nThis market will resolve to “Yes” if federal government current expenditures decrease by 5% or more between the Q4 2024 report and the Q4 2025 report. Otherwise, it will resolve to \"No\".\n\nAny 2025 quarterly report of $6,751,467,000,000 or less will qualify for a “Yes” resolution.\n\nRevisions made to these figures will not be considered, only the values reported in the initial reports will be used.\n\nThis market's resolution source is the Federal Government: Current Expenditures chart maintained by the St. Louis Federal Reserve Bank, displayed here (https://fred.stlouisfed.org/series/FGEXPND).\n"
+  },
+  {
+    "ticker": null,
+    "title": "Will Bitcoin Dominance hit 70% before October?",
+    "description": "This market will immediately resolve to \"Yes\" if any TradingView 1 minute candle for BTC.D between July 3, 2025, 15:30 and September 30, 2025, 23:59 in the ET timezone has a final \"High\" value of 70.00% or higher. Otherwise, this market will resolve to \"No.\"\n\nThe resolution source for this market is TradingView, specifically the BTC.D \"High\" percentage currently available at https://www.tradingview.com/chart/?symbol=CRYPTOCAP%3ABTC.D with “1m” and “Candles” selected on the top bar.\n\nPlease note that this market is about the percentage according to TradingView BTC.D, not according to other sources or spot markets."
+  },
+  {
+    "ticker": null,
+    "title": "Will Henry Kissinger be named in newly released Epstein files?",
+    "description": "This market will resolve to \"Yes\" if the Trump Administration (including any federal court) publicly releases previously unreleased files pertaining to the illegal activities of Jeffrey Epstein which contain any mention of the listed individual between July 16 and December 31, 2025, 11:59 PM ET. Otherwise, this market will resolve to \"No\".\n\nOnly previously unreleased files which contain novel material not previously available to the public will qualify. Documents that are merely re-released, have had redactions removed, repackaged, or newly publicized versions of already available information do not qualify.\n\nAny mention of the listed individual in connection with Jeffrey Epstein will qualify, regardless of if connected to nefarious or illegal activities.\n\nThe primary resolution source for this market will be a consensus of credible reporting."
+  },
+  {
+    "ticker": null,
+    "title": "Will Dogecoin dip to $0.08 in July?",
+    "description": "This market will immediately resolve to \"Yes\" if any Binance 1 minute candle for Dogecoin (DOGE/USDT) between July 1, 2025, 00:00 and July 31, 2025, 23:59 in the ET timezone has a final \"Low\" price of $0.08000 or lower. Otherwise, this market will resolve to \"No.\"\n\nThe resolution source for this market is Binance, specifically the DOGE/USDT \"Low\" prices available at https://www.binance.com/en/trade/DOGE_USDT, with the chart settings on \"1m\" for one-minute candles selected on the top bar.\n\nPlease note that the outcome of this market depends solely on the price data from the Binance DOGE/USDT trading pair. Prices from other exchanges, different trading pairs, or spot markets will not be considered for the resolution of this market."
+  }
+]

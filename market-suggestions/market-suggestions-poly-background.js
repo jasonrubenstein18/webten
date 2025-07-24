@@ -6,9 +6,8 @@ const GAMMA_BASE = 'https://gamma-api.polymarket.com';
 
 // Configuration for Polymarket
 const POLYMARKET_CONFIG = {
-    MAX_PAGES: 20,        // Fetch up to 20 pages
-    EVENTS_PER_PAGE: 100, // Reasonable limit per request
-    MARKETS_PER_PAGE: 100, // Markets per page
+    MAX_PAGES: 50,        // Fetch up to 50 pages (10,000 markets max)
+    MARKETS_PER_PAGE: 200, // Markets per page (increased for efficiency)
     MAX_RELEVANT_MARKETS: 8, // Maximum number of relevant markets to return
     MAX_MARKETS_FOR_ANALYSIS: 10000, // Maximum markets for analysis
     API_TIMEOUT: 30000, // 30 second timeout for individual API calls
@@ -16,90 +15,16 @@ const POLYMARKET_CONFIG = {
     RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
 };
 
-// Fetch events from Polymarket Gamma API
-async function fetchPolymarketEvents() {
+// Fetch ALL Polymarket markets with pricing data
+async function fetchAllPolymarketMarkets() {
     try {
-        console.log('Starting to fetch Polymarket events...');
-        
-        let allEvents = [];
-        let offset = 0;
-        let pageCount = 0;
-        const maxPages = POLYMARKET_CONFIG.MAX_PAGES;
-        const limit = POLYMARKET_CONFIG.EVENTS_PER_PAGE;
-        
-        do {
-            pageCount++;
-            console.log(`Fetching page ${pageCount} of up to ${maxPages}...`);
-            
-            const params = new URLSearchParams({
-                limit: limit.toString(),
-                offset: offset.toString(),
-                active: 'true',      // Only get active events
-                closed: 'false',     // Exclude closed/resolved events
-                archived: 'false',   // Exclude archived events
-                order: 'volume',
-                ascending: 'false'   // Sort by volume descending
-            });
-            
-            const url = `${GAMMA_BASE}/events?${params}`;
-            console.log('Making API request to:', url);
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            console.log(`Page ${pageCount} API Response status:`, response.status);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API Error response:', errorText);
-                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-            }
-            
-            const events = await response.json();
-            console.log(`Page ${pageCount} response data:`, {
-                eventsCount: events?.length || 0,
-                hasMore: events?.length === limit
-            });
-            
-            if (events && Array.isArray(events)) {
-                allEvents = allEvents.concat(events);
-                console.log(`Total events collected so far: ${allEvents.length}`);
-            }
-            
-            // Check if we got fewer events than requested (last page)
-            if (!events || events.length < limit) {
-                break;
-            }
-            
-            offset += limit;
-            
-        } while (pageCount < maxPages);
-        
-        console.log(`Pagination complete. Fetched ${pageCount} pages with ${allEvents.length} total events.`);
-        
-        return allEvents;
-        
-    } catch (error) {
-        console.error('Error fetching Polymarket events:', error);
-        throw error;
-    }
-}
-
-// Fetch markets directly with pricing data (for page analysis)
-async function fetchPolymarketMarketsWithPricing() {
-    try {
-        console.log('Starting to fetch Polymarket markets with pricing...');
+        console.log('Starting to fetch ALL Polymarket markets...');
         
         let allMarkets = [];
         let offset = 0;
         let pageCount = 0;
-        const maxPages = Math.ceil(POLYMARKET_CONFIG.MAX_MARKETS_FOR_ANALYSIS / POLYMARKET_CONFIG.MARKETS_PER_PAGE); // Calculate pages needed for 4000 markets
-        const limit = POLYMARKET_CONFIG.MARKETS_PER_PAGE; // Use configured limit (100 per page)
+        const maxPages = POLYMARKET_CONFIG.MAX_PAGES;
+        const limit = POLYMARKET_CONFIG.MARKETS_PER_PAGE;
         
         do {
             pageCount++;
@@ -164,87 +89,15 @@ async function fetchPolymarketMarketsWithPricing() {
         } while (pageCount < maxPages);
         
         console.log(`Markets pagination complete. Fetched ${pageCount} pages with ${allMarkets.length} total markets with pricing.`);
+        console.log(`Total API markets available: ~${pageCount * limit} (estimated)`);
+        console.log(`Valid markets with pricing: ${allMarkets.length}`);
         
         return allMarkets;
         
     } catch (error) {
-        console.error('Error fetching Polymarket markets with pricing:', error);
+        console.error('Error fetching Polymarket markets:', error);
         throw error;
     }
-}
-
-// Fetch markets for a specific event
-async function fetchPolymarketEventMarkets(eventId) {
-    try {
-        console.log(`Fetching markets for event: ${eventId}`);
-        
-        let allMarkets = [];
-        let offset = 0;
-        let pageCount = 0;
-        const limit = POLYMARKET_CONFIG.MARKETS_PER_PAGE;
-        
-        do {
-            pageCount++;
-            const params = new URLSearchParams({
-                limit: limit.toString(),
-                offset: offset.toString(),
-                active: 'true',              // Only get active markets
-                closed: 'false',             // Exclude closed markets
-                event_slug: eventId.toString() // Use event ID or slug
-            });
-            
-            const url = `${GAMMA_BASE}/markets?${params}`;
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const markets = await response.json();
-            
-            if (markets && Array.isArray(markets)) {
-                allMarkets = allMarkets.concat(markets);
-            }
-            
-            // Check if we got fewer markets than requested (last page)
-            if (!markets || markets.length < limit) {
-                break;
-            }
-            
-            offset += limit;
-            
-        } while (pageCount < 10); // Limit to 10 pages per event
-        
-        console.log(`Fetched ${allMarkets.length} markets for event ${eventId}`);
-        return allMarkets;
-        
-    } catch (error) {
-        console.error(`Error fetching markets for event ${eventId}:`, error);
-        return [];
-    }
-}
-
-// Transform Polymarket event data to match Kalshi format
-function transformPolymarketEvent(event) {
-    return {
-        ticker: event.slug || event.id?.toString() || 'UNKNOWN',
-        title: event.title || event.slug || 'Untitled Event',
-        description: event.description || event.title || 'No description available',
-        category: event.category || extractCategoryFromTags(event.tags) || 'General',
-        series_ticker: event.slug || event.id?.toString() || 'UNKNOWN',
-        status: event.active && !event.closed ? 'open' : 'closed',
-        volume: event.volume || 0,
-        liquidity: event.liquidity || 0,
-        start_date: event.startDate,
-        end_date: event.endDate
-    };
 }
 
 // Helper function to round prices to nearest tenth of a cent
@@ -366,49 +219,6 @@ function transformPolymarketMarket(market) {
         rules_primary: market.description || '',
         response_price_units: 'usd_cent'
     };
-}
-
-// Extract category from Polymarket tags
-function extractCategoryFromTags(tags) {
-    if (!tags || !Array.isArray(tags) || tags.length === 0) {
-        return 'General';
-    }
-    
-    // Map common Polymarket tags to categories
-    const categoryMap = {
-        'politics': 'Politics',
-        'elections': 'Politics',
-        'trump': 'Politics',
-        'biden': 'Politics',
-        'crypto': 'Crypto',
-        'bitcoin': 'Crypto',
-        'ethereum': 'Crypto',
-        'sports': 'Sports',
-        'nfl': 'Sports',
-        'nba': 'Sports',
-        'soccer': 'Sports',
-        'football': 'Sports',
-        'business': 'Business',
-        'tech': 'Technology',
-        'technology': 'Technology',
-        'ai': 'Technology',
-        'science': 'Science',
-        'weather': 'Weather',
-        'entertainment': 'Entertainment',
-        'celebrity': 'Entertainment'
-    };
-    
-    // Find first matching category
-    for (const tag of tags) {
-        const normalizedTag = tag.label ? tag.label.toLowerCase() : tag.toLowerCase();
-        if (categoryMap[normalizedTag]) {
-            return categoryMap[normalizedTag];
-        }
-    }
-    
-    // Return the first tag as category if no mapping found
-    const firstTag = tags[0].label || tags[0];
-    return firstTag.charAt(0).toUpperCase() + firstTag.slice(1);
 }
 
 // Group markets by their parent event to combine related binary markets
@@ -534,62 +344,275 @@ function transformGroupedMarkets(groupKey, groupData) {
     };
 }
 
-// Main function to fetch Polymarket markets (equivalent to fetchKalshiMarkets)
-async function fetchPolymarketMarkets() {
-    try {
-        console.log('Starting to fetch Polymarket markets...');
+// Estimate token count (rough approximation)
+function estimateTokens(text) {
+    // Rough estimate: 1 token ≈ 4 characters for English text
+    return Math.ceil(text.length / 4);
+}
+
+// Create a summarized version of markets for AI analysis
+function summarizeMarketsForAI(markets) {
+    return markets.map(market => {
+        // Create a condensed version with key information
+        const title = market.title.length > 100 ? market.title.substring(0, 100) + '...' : market.title;
+        const description = market.description ? (market.description.length > 150 ? market.description.substring(0, 150) + '...' : market.description) : 'No description';
         
-        // Step 1: Fetch events
-        const events = await fetchPolymarketEvents();
+        return {
+            ticker: market.ticker,
+            title: title,
+            description: description,
+            category: market.category
+        };
+    });
+}
+
+// Find relevant markets using AI-powered relevance analysis with optimized batching
+async function findRelevantPolymarketMarkets(pageContent, markets, progressCallback = null) {
+    const startTime = Date.now();
+    
+    // Wrap the entire analysis in a timeout to prevent hanging
+    const analysisPromise = (async () => {
+        console.log('Finding relevant Polymarket markets using AI analysis...');
         
-        if (!events || events.length === 0) {
-            return {
-                success: false,
-                error: 'No events found',
-                markets: []
-            };
+        // Process ALL markets (no artificial limit)
+        const marketsToAnalyze = markets;
+        console.log(`Processing ${marketsToAnalyze.length} markets (ALL available markets)`);
+        
+        // Prepare page content (truncate if too long)
+        let contentText = `${pageContent.title} ${pageContent.summary}`.trim();
+        if (!contentText || contentText.length < 10) {
+            throw new Error('Insufficient page content for analysis');
         }
         
-        // Step 2: Transform events to match Kalshi format
-        const transformedEvents = events.map(transformPolymarketEvent);
+        // Truncate content if too long to save tokens
+        if (contentText.length > 1500) {
+            contentText = contentText.substring(0, 1500) + '...';
+        }
         
-        // Step 3: Filter to only include truly open events (additional safety check)
-        const openEvents = transformedEvents.filter(event => event.status === 'open');
+        // Use larger batch size and fewer batches for efficiency
+        const basePromptTokens = estimateTokens(`Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the content. Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
+
+WEBPAGE CONTENT:
+Title: ${pageContent.title}
+Content: ${contentText}
+
+POLYMARKET MARKETS:
+
+Return ONLY a JSON array in this exact format:
+[
+  {
+    "ticker": "MARKET_TICKER",
+    "relevanceScore": 85,
+    "reason": "Brief explanation of relevance"
+  }
+]
+
+Only include markets with relevance score 40 or higher. If no markets are highly relevant, return an empty array.`);
         
-        console.log(`Processed ${transformedEvents.length} Polymarket events, ${openEvents.length} are open`);
+        // Reserve tokens for response (1000) and safety margin (1000)
+        const availableTokens = 16000 - basePromptTokens - 2000;
+        
+        // Estimate tokens per market entry (ticker + title + description)
+        const avgTokensPerMarket = 40; // More aggressive estimate
+        const marketsPerBatch = Math.floor(availableTokens / avgTokensPerMarket);
+        const batchSize = Math.min(marketsPerBatch, 300); // Larger batch size for efficiency
+        
+        console.log(`Token analysis: base=${basePromptTokens}, available=${availableTokens}, batch size=${batchSize}`);
+        
+        // Summarize markets to reduce token usage
+        const summarizedMarkets = summarizeMarketsForAI(marketsToAnalyze);
+        
+        // Process ALL markets in batches (no artificial limit)
+        const totalBatches = Math.ceil(summarizedMarkets.length / batchSize);
+        
+        console.log(`Processing ${summarizedMarkets.length} markets in ${totalBatches} batches (ALL markets)`);
+        
+        let allRelevantMarkets = [];
+        
+        for (let i = 0; i < summarizedMarkets.length; i += batchSize) {
+            const batch = summarizedMarkets.slice(i, i + batchSize);
+            const batchNumber = Math.floor(i / batchSize) + 1;
+            
+            console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} markets)`);
+            
+            if (progressCallback) {
+                progressCallback({
+                    phase: 'analysis',
+                    current: batchNumber,
+                    total: totalBatches,
+                    message: `Analyzing markets (batch ${batchNumber}/${totalBatches})...`
+                });
+            }
+            
+            try {
+                // Prepare markets list for this batch
+                const marketsList = batch.map((market, index) => 
+                    `${i + index + 1}. ${market.ticker}: ${market.title} - ${market.description}`
+                ).join('\n');
+                
+                // Create optimized prompt for relevance analysis
+                const prompt = `Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the content. Based specifically on the content of the webpage what markets might the user be most interested in participating in? Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
+
+WEBPAGE CONTENT:
+Title: ${pageContent.title}
+Content: ${contentText}
+
+POLYMARKET MARKETS:
+${marketsList}
+
+Return ONLY a JSON array in this exact format:
+[
+  {
+    "ticker": "MARKET_TICKER",
+    "relevanceScore": 85,
+    "reason": "Brief explanation of relevance"
+  }
+]
+
+Only include markets with relevance score 40 or higher. If no markets are highly relevant, return an empty array.`;
+
+                // Double-check token count before sending
+                const promptTokens = estimateTokens(prompt);
+                if (promptTokens > 15000) {
+                    console.warn(`Batch ${batchNumber} prompt too long (${promptTokens} tokens), skipping...`);
+                    continue;
+                }
+                
+                console.log(`Sending AI analysis request for batch ${batchNumber} (${promptTokens} estimated tokens)...`);
+                
+                // Create timeout promise
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('AI analysis timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
+                });
+                
+                // Create fetch promise for OpenAI API
+                const fetchPromise = fetch(`https://api.openai.com/v1/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer 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`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature: 0.1,
+                        max_tokens: 1000
+                    })
+                });
+                
+                // Race between fetch and timeout
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                    throw new Error('Invalid response format from OpenAI API');
+                }
+                
+                const aiResponse = data.choices[0].message.content.trim();
+                console.log(`AI Response for batch ${batchNumber}:`, aiResponse);
+                
+                // Parse AI response with improved handling for code blocks
+                let relevantTickers;
+                let parseAttempt = aiResponse;
+
+                // First, try to clean if wrapped in code block
+                if (parseAttempt.startsWith('```json') && parseAttempt.endsWith('```')) {
+                    parseAttempt = parseAttempt.slice(7, -3).trim();
+                } else if (parseAttempt.startsWith('```') && parseAttempt.endsWith('```')) {
+                    parseAttempt = parseAttempt.slice(3, -3).trim();
+                }
+
+                try {
+                    relevantTickers = JSON.parse(parseAttempt);
+                } catch (parseError) {
+                    console.error(`Failed to parse AI response for batch ${batchNumber}:`, parseError);
+                    
+                    // Fallback: Try to extract JSON array from response
+                    const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        try {
+                            relevantTickers = JSON.parse(jsonMatch[0]);
+                        } catch (fallbackError) {
+                            console.warn(`Fallback parse failed for batch ${batchNumber}:`, fallbackError);
+                            continue;
+                        }
+                    } else {
+                        console.warn(`No JSON array found in response for batch ${batchNumber}, skipping...`);
+                        continue;
+                    }
+                }
+                
+                if (!Array.isArray(relevantTickers)) {
+                    console.warn(`Batch ${batchNumber} response is not an array, skipping...`);
+                    continue;
+                }
+                
+                // Match AI results with original market data
+                const batchRelevantMarkets = relevantTickers.map(aiMarket => {
+                    const originalMarket = marketsToAnalyze.find(m => m.ticker === aiMarket.ticker);
+                    if (!originalMarket) {
+                        console.warn(`Market ${aiMarket.ticker} not found in original list`);
+                        return null;
+                    }
+                    
+                    return {
+                        ...originalMarket,
+                        relevanceScore: aiMarket.relevanceScore,
+                        reason: aiMarket.reason
+                    };
+                }).filter(market => market !== null);
+                
+                allRelevantMarkets = allRelevantMarkets.concat(batchRelevantMarkets);
+                console.log(`Batch ${batchNumber} completed: ${batchRelevantMarkets.length} relevant markets found`);
+                
+                // Reduced delay between batches
+                if (i + batchSize < summarizedMarkets.length) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+            } catch (error) {
+                console.error(`Error processing batch ${batchNumber}:`, error);
+                // Continue with next batch even if current batch fails
+            }
+        }
+        
+        // Sort by relevance score and take top results
+        allRelevantMarkets.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        const topRelevantMarkets = allRelevantMarkets.slice(0, POLYMARKET_CONFIG.MAX_RELEVANT_MARKETS);
+        
+        const processingTime = Date.now() - startTime;
+        console.log(`Found ${topRelevantMarkets.length} relevant Polymarket markets from AI analysis (from ${allRelevantMarkets.length} total candidates) in ${processingTime}ms`);
         
         return {
             success: true,
-            markets: openEvents
+            markets: topRelevantMarkets,
+            totalAnalyzed: summarizedMarkets.length,
+            totalBatches: totalBatches,
+            processingTime: processingTime,
+            contentSummary: `Found ${markets.length} active Polymarket markets`
         };
-        
+    })();
+    
+    // Add overall timeout for the entire analysis
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Analysis timed out after 3 minutes')), 180000);
+    });
+    
+    try {
+        return await Promise.race([analysisPromise, timeoutPromise]);
     } catch (error) {
-        console.error('Error fetching Polymarket markets:', error);
-        
+        console.error('Error finding relevant Polymarket markets:', error);
         return {
             success: false,
             error: error.message,
             markets: []
         };
-    }
-}
-
-// Fetch detailed markets for a Polymarket event (equivalent to fetchEventMarkets)
-async function fetchPolymarketEventDetails(eventTicker) {
-    try {
-        console.log(`Fetching detailed markets for Polymarket event: ${eventTicker}`);
-        
-        const markets = await fetchPolymarketEventMarkets(eventTicker);
-        
-        // Transform markets to match Kalshi format
-        const transformedMarkets = markets.map(transformPolymarketMarket);
-        
-        console.log(`Fetched ${transformedMarkets.length} markets for Polymarket event ${eventTicker}`);
-        return transformedMarkets;
-        
-    } catch (error) {
-        console.error(`Error fetching Polymarket event details for ${eventTicker}:`, error);
-        return [];
     }
 }
 
@@ -602,13 +625,28 @@ function handlePolymarketMessage(request, sender, sendResponse) {
     
     if (action === 'getPolymarketMarkets') {
         console.log('Fetching Polymarket markets...');
-        fetchPolymarketMarkets()
-            .then(result => {
-                console.log('Sending Polymarket response:', result);
-                sendResponse(result);
+        fetchAllPolymarketMarkets()
+            .then(markets => {
+                // Group markets by parent event
+                const groupedMarkets = groupMarketsByParentEvent(markets);
+                
+                // Transform grouped markets into combined multi-outcome markets
+                const transformedMarkets = [];
+                for (const [groupKey, groupData] of groupedMarkets.entries()) {
+                    const transformedGroup = transformGroupedMarkets(groupKey, groupData);
+                    if (transformedGroup && transformedGroup.subMarkets && transformedGroup.subMarkets.length > 0) {
+                        transformedMarkets.push(transformedGroup);
+                    }
+                }
+                
+                console.log(`Sending Polymarket response: ${transformedMarkets.length} markets`);
+                sendResponse({
+                    success: true,
+                    markets: transformedMarkets
+                });
             })
             .catch(error => {
-                console.error('Error in fetchPolymarketMarkets:', error);
+                console.error('Error in fetchAllPolymarketMarkets:', error);
                 sendResponse({
                     success: false,
                     error: error.message,
@@ -621,7 +659,7 @@ function handlePolymarketMessage(request, sender, sendResponse) {
     if (action === 'analyzePageContent') {
         console.log('Analyzing page content for relevant Polymarket markets...');
         
-        // Get page content and analyze (similar to Kalshi implementation)
+        // Get page content and analyze
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (!tabs[0]) {
                 sendResponse({
@@ -653,9 +691,38 @@ function handlePolymarketMessage(request, sender, sendResponse) {
                 }
                 
                 try {
-                    // Fetch Polymarket markets directly (they include pricing data)
-                    const marketsResult = await fetchPolymarketMarketsWithPricing();
-                    if (!marketsResult || marketsResult.length === 0) {
+                    // Send progress update function
+                    const sendProgress = (progressData) => {
+                        chrome.runtime.sendMessage({
+                            action: 'progressUpdate',
+                            progress: progressData
+                        }).catch(() => {
+                            // Popup might be closed, ignore errors
+                        });
+                    };
+                    
+                    // Step 1: Extract content (already done)
+                    sendProgress({
+                        phase: 'content',
+                        current: 1,
+                        total: 1,
+                        percentage: 10,
+                        message: 'Extracting page content...',
+                        details: 'Reading webpage content and filtering out ads...'
+                    });
+                    
+                    // Step 2: Fetch ALL Polymarket markets
+                    sendProgress({
+                        phase: 'fetching',
+                        current: 1,
+                        total: 1,
+                        percentage: 20,
+                        message: 'Fetching Polymarket markets...',
+                        details: 'Connecting to Polymarket API to get all active markets...'
+                    });
+                    
+                    const allMarkets = await fetchAllPolymarketMarkets();
+                    if (!allMarkets || allMarkets.length === 0) {
                         sendResponse({
                             success: false,
                             error: 'No Polymarket markets found',
@@ -664,10 +731,19 @@ function handlePolymarketMessage(request, sender, sendResponse) {
                         return;
                     }
                     
-                    // Group markets by their parent event
-                    const groupedMarkets = groupMarketsByParentEvent(marketsResult);
+                    sendProgress({
+                        phase: 'processing',
+                        current: 1,
+                        total: 1,
+                        percentage: 40,
+                        message: 'Processing markets...',
+                        details: `Found ${allMarkets.length} markets with pricing, grouping by parent events...`
+                    });
                     
-                    // Transform grouped markets into combined multi-outcome markets
+                    // Step 3: Group markets by parent event
+                    const groupedMarkets = groupMarketsByParentEvent(allMarkets);
+                    
+                    // Step 4: Transform grouped markets into combined multi-outcome markets
                     const transformedMarkets = [];
                     for (const [groupKey, groupData] of groupedMarkets.entries()) {
                         const transformedGroup = transformGroupedMarkets(groupKey, groupData);
@@ -676,32 +752,46 @@ function handlePolymarketMessage(request, sender, sendResponse) {
                         }
                     }
                     
-                    // Limit markets for analysis efficiency (like Kalshi does)
-                    const limitedMarkets = transformedMarkets.slice(0, POLYMARKET_CONFIG.MAX_MARKETS_FOR_ANALYSIS);
-                    console.log(`Processing ${limitedMarkets.length} grouped markets (from ${transformedMarkets.length} total)`);
-                    
-                    // Take top markets for display
-                    const marketsToAnalyze = limitedMarkets.slice(0, 8);
-                    
-                    console.log('Processing grouped Polymarket markets with pricing data...');
-                    
-                    for (let market of marketsToAnalyze) {
-                        if (market.subMarkets && market.subMarkets.length > 0) {
-                            console.log(`Market "${market.title}" has ${market.subMarkets.length} outcomes:`);
-                            for (let subMarket of market.subMarkets) {
-                                console.log(`  - ${subMarket.title}: Yes=${subMarket.yes_ask}¢, No=${subMarket.no_ask}¢`);
-                            }
-                        }
-                    }
-                    
-                    console.log(`Processed ${marketsToAnalyze.length} Polymarket markets with pricing data`);
-                    
-                    sendResponse({
-                        success: true,
-                        markets: marketsToAnalyze,
-                        contentSummary: `Found ${marketsResult.length} active Polymarket markets`,
-                        totalAnalyzed: limitedMarkets.length
+                    sendProgress({
+                        phase: 'analysis',
+                        current: 1,
+                        total: 1,
+                        percentage: 60,
+                        message: 'Analyzing relevance...',
+                        details: `Processing ${transformedMarkets.length} grouped markets from ${allMarkets.length} total markets for relevance...`
                     });
+                    
+                    // Step 5: Find relevant markets using AI analysis (process ALL markets)
+                    const relevantResult = await findRelevantPolymarketMarkets(
+                        contentResponse.content, 
+                        transformedMarkets,
+                        (progressData) => {
+                            // Convert progress data to percentage (60-90% range)
+                            const percentage = 60 + (progressData.current / progressData.total) * 30;
+                            sendProgress({
+                                phase: progressData.phase,
+                                current: progressData.current,
+                                total: progressData.total,
+                                percentage: Math.round(percentage),
+                                message: progressData.message,
+                                details: 'Finding relevant markets for this content...'
+                            });
+                        }
+                    );
+                    
+                    // Final progress update
+                    sendProgress({
+                        phase: 'complete',
+                        current: 1,
+                        total: 1,
+                        percentage: 100,
+                        message: 'Complete!',
+                        details: 'Analysis finished successfully.'
+                    });
+                    
+                    console.log(`Processed ${relevantResult.markets.length} relevant Polymarket markets with pricing data`);
+                    
+                    sendResponse(relevantResult);
                     
                 } catch (error) {
                     console.error('Error in Polymarket analyzePageContent:', error);
