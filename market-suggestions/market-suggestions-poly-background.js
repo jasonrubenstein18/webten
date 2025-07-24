@@ -557,10 +557,10 @@ Only include markets with relevance score 75 or higher. If no markets are highly
             });
             
             // Create fetch promise for OpenAI API
-            const fetchPromise = fetch(`https://api.openai.com/v1/chat/completions`, {
+            const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer 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`,
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -805,10 +805,10 @@ Only include markets with relevance score 75 or higher. If no markets are highly
             });
             
             // Create fetch promise for OpenAI API
-            const fetchPromise = fetch(`https://api.openai.com/v1/chat/completions`, {
+            const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer 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`,
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({

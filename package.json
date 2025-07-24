@@ -4,7 +4,9 @@
   "description": "Chrome extension that suggests relevant markets on Kalshi based on webpage content with real-time API integration",
   "main": "background.js",
   "scripts": {
-    "build": "cp node_modules/node-forge/dist/forge.min.js lib/forge.min.js",
+    "build": "npm run build:config && cp node_modules/node-forge/dist/forge.min.js lib/forge.min.js",
+    "build:config": "node scripts/build-config.js",
+    "dev": "npm run build:config",
     "test": "echo 'Add tests here'",
     "lint": "echo 'Add linting here'",
     "install-extension": "echo 'Load the extension in Chrome by going to chrome://extensions/ and enabling Developer mode, then click Load unpacked and select this directory'"
@@ -20,7 +22,9 @@
   ],
   "author": "Your Name",
   "license": "MIT",
-  "devDependencies": {},
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  },
   "dependencies": {
     "node-forge": "^1.3.1"
   }

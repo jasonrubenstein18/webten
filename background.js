@@ -334,14 +334,14 @@ Please provide a comprehensive markdown-formatted summary following the requirem
         });
         
         // Create fetch promise for Grok API
-        const fetchPromise = fetch(`https://api.x.ai/v1/chat/completions`, {
+        const fetchPromise = fetch(`${GROK_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer xai-JGM7BR2dAtEmNkCka0UPsJ3ANql1UZrs5gtSXRl5Lxd6y0k5A0FUhAiV6j4nRr8cYD4o5hIXYqXh6y3t`,
+                'Authorization': `Bearer ${GROK_API_KEY}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'grok-3-latest',
+                model: GROK_MODEL,
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.3,
                 max_tokens: 4000
@@ -441,14 +441,14 @@ Please provide your Morning Brew-style summary following the format above:`;
         });
         
         // Create fetch promise for Grok API
-        const fetchPromise = fetch(`https://api.x.ai/v1/chat/completions`, {
+        const fetchPromise = fetch(`${GROK_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer xai-JGM7BR2dAtEmNkCka0UPsJ3ANql1UZrs5gtSXRl5Lxd6y0k5A0FUhAiV6j4nRr8cYD4o5hIXYqXh6y3t`,
+                'Authorization': `Bearer ${GROK_API_KEY}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'grok-3-latest',
+                model: GROK_MODEL,
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7, // Higher temperature for more creative/cheeky tone
                 max_tokens: 800 // Shorter response for quick summary
