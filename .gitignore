@@ -10,6 +10,14 @@ build/
 *.crx
 *.pem
 
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+config.js
+common/config.js
+
 # IDE files
 .vscode/
 .idea/
