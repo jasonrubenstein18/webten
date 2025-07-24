@@ -457,7 +457,264 @@ function summarizeMarketsForAI(markets) {
     });
 }
 
-// Find relevant markets using AI-powered relevance analysis with optimized batching
+// Fallback batch processing function for when global analysis fails
+async function processMarketsInBatches(pageContent, contentText, summarizedMarkets, marketsToAnalyze, totalFetchedMarkets, displaySummary, progressCallback) {
+    console.log('Using fallback batch processing...');
+    
+    // Use larger batch size and fewer batches for efficiency
+    const basePromptTokens = estimateTokens(`Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the web content. Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
+
+WEBPAGE CONTENT:
+Title: ${pageContent.title}
+Content: ${contentText}
+
+POLYMARKET MARKETS:
+
+Return ONLY a JSON array in this exact format:
+[
+  {
+    "ticker": "MARKET_TICKER",
+    "relevanceScore": 85,
+    "reason": "Brief explanation of relevance"
+  }
+]
+
+Only include markets with relevance score 75 or higher. If no markets are highly relevant, return an empty array.`);
+
+    // Reserve tokens for response (1000) and safety margin (1000)
+    const availableTokens = 16000 - basePromptTokens - 2000;
+    
+    // Estimate tokens per market entry (ticker + title + description)
+    const avgTokensPerMarket = 40; // More aggressive estimate
+    const marketsPerBatch = Math.floor(availableTokens / avgTokensPerMarket);
+    const batchSize = Math.min(marketsPerBatch, 300); // Larger batch size for efficiency
+    
+    console.log(`Token analysis: base=${basePromptTokens}, available=${availableTokens}, batch size=${batchSize}`);
+    
+    // Process ALL markets in batches (no artificial limit)
+    const totalBatches = Math.ceil(summarizedMarkets.length / batchSize);
+    
+    console.log(`Processing ${summarizedMarkets.length} markets in ${totalBatches} batches (fallback mode)`);
+    
+    let allRelevantMarkets = [];
+    
+    for (let i = 0; i < summarizedMarkets.length; i += batchSize) {
+        const batch = summarizedMarkets.slice(i, i + batchSize);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+        
+        console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} markets)`);
+        
+        if (progressCallback) {
+            progressCallback({
+                phase: 'analysis',
+                current: batchNumber,
+                total: totalBatches,
+                message: `Analyzing markets (batch ${batchNumber}/${totalBatches})...`
+            });
+        }
+        
+        try {
+            // Prepare markets list for this batch
+            const marketsList = batch.map((market, index) => 
+                `${i + index + 1}. ${market.ticker}: ${market.title} - ${market.description}`
+            ).join('\n');
+            
+            // Create optimized prompt for relevance analysis
+            const prompt = `Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the content. Based specifically on the content of the webpage what markets might the user be most interested in participating in? Return ONLY a JSON array of the most relevant markets with their relevance scores.
+
+IMPORTANT: Only include markets that are TRULY relevant to the webpage content. If a market is not directly related to the topics, people, companies, or events mentioned in the content, do NOT include it. It's better to return an empty array than to include irrelevant markets.
+
+WEBPAGE CONTENT:
+Title: ${pageContent.title}
+Content: ${contentText}
+
+POLYMARKET MARKETS:
+${marketsList}
+
+Return ONLY a JSON array in this exact format:
+[
+  {
+    "ticker": "MARKET_TICKER",
+    "relevanceScore": 85,
+    "reason": "Brief explanation of relevance"
+  }
+]
+
+Only include markets with relevance score 75 or higher. If no markets are highly relevant, return an empty array.`;
+
+            // Double-check token count before sending
+            const promptTokens = estimateTokens(prompt);
+            if (promptTokens > 15000) {
+                console.warn(`Batch ${batchNumber} prompt too long (${promptTokens} tokens), skipping...`);
+                continue;
+            }
+            
+            console.log(`Sending AI analysis request for batch ${batchNumber} (${promptTokens} estimated tokens)...`);
+            
+            // Create timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('AI analysis timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
+            });
+            
+            // Create fetch promise for OpenAI API
+            const fetchPromise = fetch(`https://api.openai.com/v1/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer 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`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.1,
+                    max_tokens: 1000
+                })
+            });
+            
+            // Race between fetch and timeout
+            const response = await Promise.race([fetchPromise, timeoutPromise]);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                throw new Error('Invalid response format from OpenAI API');
+            }
+            
+            const aiResponse = data.choices[0].message.content.trim();
+            console.log(`AI Response for batch ${batchNumber}:`, aiResponse);
+            
+            // Parse AI response with improved handling for code blocks
+            let relevantTickers;
+            let parseAttempt = aiResponse;
+
+            // First, try to clean if wrapped in code block
+            if (parseAttempt.startsWith('```json') && parseAttempt.endsWith('```')) {
+                parseAttempt = parseAttempt.slice(7, -3).trim();
+            } else if (parseAttempt.startsWith('```') && parseAttempt.endsWith('```')) {
+                parseAttempt = parseAttempt.slice(3, -3).trim();
+            }
+
+            try {
+                relevantTickers = JSON.parse(parseAttempt);
+            } catch (parseError) {
+                console.error(`Failed to parse AI response for batch ${batchNumber}:`, parseError);
+                
+                // Fallback: Try to extract JSON array from response
+                const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    try {
+                        relevantTickers = JSON.parse(jsonMatch[0]);
+                    } catch (fallbackError) {
+                        console.warn(`Fallback parse failed for batch ${batchNumber}:`, fallbackError);
+                        continue;
+                    }
+                } else {
+                    console.warn(`No JSON array found in response for batch ${batchNumber}, skipping...`);
+                    continue;
+                }
+            }
+            
+            if (!Array.isArray(relevantTickers)) {
+                console.warn(`Batch ${batchNumber} response is not an array, skipping...`);
+                continue;
+            }
+            
+            // Match AI results with original market data and validate relevance scores
+            const batchRelevantMarkets = relevantTickers.map(aiMarket => {
+                const originalMarket = marketsToAnalyze.find(m => m.ticker === aiMarket.ticker);
+                if (!originalMarket) {
+                    console.warn(`Market ${aiMarket.ticker} not found in original list`);
+                    return null;
+                }
+                
+                // Validate relevance score is a number and within reasonable range
+                const relevanceScore = typeof aiMarket.relevanceScore === 'number' ? aiMarket.relevanceScore : 0;
+                if (relevanceScore < 0 || relevanceScore > 100) {
+                    console.warn(`Invalid relevance score for market ${aiMarket.ticker}: ${aiMarket.relevanceScore}, setting to 0`);
+                    return null; // Skip invalid markets
+                }
+                
+                return {
+                    ...originalMarket,
+                    relevanceScore: relevanceScore,
+                    reason: aiMarket.reason || 'No reason provided'
+                };
+            }).filter(market => market !== null);
+            
+            allRelevantMarkets = allRelevantMarkets.concat(batchRelevantMarkets);
+            console.log(`Batch ${batchNumber} completed: ${batchRelevantMarkets.length} relevant markets found`);
+            
+            // Log relevance scores for debugging
+            if (batchRelevantMarkets.length > 0) {
+                console.log(`Batch ${batchNumber} relevance scores:`, batchRelevantMarkets.map(m => `${m.ticker}: ${m.relevanceScore}`));
+            }
+            
+            // Reduced delay between batches
+            if (i + batchSize < summarizedMarkets.length) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+        } catch (error) {
+            console.error(`Error processing batch ${batchNumber}:`, error);
+            // Continue with next batch even if current batch fails
+        }
+    }
+    
+    // Sort by relevance score and filter out low-relevance markets
+    allRelevantMarkets.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    
+    // Filter out markets with relevance score below 75
+    const highRelevanceMarkets = allRelevantMarkets.filter(market => 
+        market.relevanceScore >= 75
+    );
+    
+    // Log markets that were filtered out for debugging
+    const filteredOutMarkets = allRelevantMarkets.filter(market => market.relevanceScore < 75);
+    if (filteredOutMarkets.length > 0) {
+        console.log(`Filtered out ${filteredOutMarkets.length} low-relevance markets:`, 
+            filteredOutMarkets.map(m => `${m.ticker}: ${m.relevanceScore}`));
+    }
+    
+    // Take top results from high-relevance markets only
+    const topRelevantMarkets = highRelevanceMarkets.slice(0, POLYMARKET_CONFIG.MAX_RELEVANT_MARKETS);
+    
+    console.log(`Filtered ${allRelevantMarkets.length} total markets down to ${highRelevanceMarkets.length} high-relevance markets (score >= 75)`);
+    
+    const processingTime = Date.now() - Date.now(); // This will be calculated by the calling function
+    console.log(`Found ${topRelevantMarkets.length} relevant Polymarket markets from batch analysis`);
+    
+    // Final validation: only return markets if we have high-quality matches
+    if (topRelevantMarkets.length === 0) {
+        console.log('No markets met the high relevance threshold (75+), returning empty result');
+        return {
+            success: true,
+            markets: [],
+            totalAnalyzed: summarizedMarkets.length,
+            totalFetchedMarkets: totalFetchedMarkets,
+            totalBatches: totalBatches,
+            processingTime: processingTime,
+            contentSummary: displaySummary,
+            message: 'No highly relevant markets found for this content'
+        };
+    }
+    
+    return {
+        success: true,
+        markets: topRelevantMarkets,
+        totalAnalyzed: summarizedMarkets.length,
+        totalFetchedMarkets: totalFetchedMarkets,
+        totalBatches: totalBatches,
+        processingTime: processingTime,
+        contentSummary: displaySummary
+    };
+}
+
+// Find relevant markets using AI-powered relevance analysis with global evaluation
 async function findRelevantPolymarketMarkets(pageContent, markets, totalFetchedMarkets = 0, progressCallback = null) {
     const startTime = Date.now();
     
@@ -483,69 +740,34 @@ async function findRelevantPolymarketMarkets(pageContent, markets, totalFetchedM
             contentText = contentText.substring(0, 1500) + '...';
         }
         
-        // Use larger batch size and fewer batches for efficiency
-        const basePromptTokens = estimateTokens(`Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the web content. Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
-
-WEBPAGE CONTENT:
-Title: ${pageContent.title}
-Content: ${contentText}
-
-POLYMARKET MARKETS:
-
-Return ONLY a JSON array in this exact format:
-[
-  {
-    "ticker": "MARKET_TICKER",
-    "relevanceScore": 85,
-    "reason": "Brief explanation of relevance"
-  }
-]
-
-Only include markets with relevance score 75 or higher. If no markets are highly relevant, return an empty array.`);
-        
-        // Reserve tokens for response (1000) and safety margin (1000)
-        const availableTokens = 16000 - basePromptTokens - 2000;
-        
-        // Estimate tokens per market entry (ticker + title + description)
-        const avgTokensPerMarket = 40; // More aggressive estimate
-        const marketsPerBatch = Math.floor(availableTokens / avgTokensPerMarket);
-        const batchSize = Math.min(marketsPerBatch, 300); // Larger batch size for efficiency
-        
-        console.log(`Token analysis: base=${basePromptTokens}, available=${availableTokens}, batch size=${batchSize}`);
-        
         // Summarize markets to reduce token usage
         const summarizedMarkets = summarizeMarketsForAI(marketsToAnalyze);
         
-        // Process ALL markets in batches (no artificial limit)
-        const totalBatches = Math.ceil(summarizedMarkets.length / batchSize);
+        // NEW APPROACH: Evaluate ALL markets together in a single AI call
+        // This ensures we get the truly most relevant markets across the entire dataset
+        console.log(`Evaluating ALL ${summarizedMarkets.length} markets together for global relevance ranking...`);
         
-        console.log(`Processing ${summarizedMarkets.length} markets in ${totalBatches} batches (ALL markets)`);
+        if (progressCallback) {
+            progressCallback({
+                phase: 'analysis',
+                current: 1,
+                total: 1,
+                message: `Analyzing all markets for relevance...`
+            });
+        }
         
-        let allRelevantMarkets = [];
-        
-        for (let i = 0; i < summarizedMarkets.length; i += batchSize) {
-            const batch = summarizedMarkets.slice(i, i + batchSize);
-            const batchNumber = Math.floor(i / batchSize) + 1;
+        try {
+            // Prepare markets list for global evaluation
+            const marketsList = summarizedMarkets.map((market, index) => 
+                `${index + 1}. ${market.ticker}: ${market.title} - ${market.description}`
+            ).join('\n');
             
-            console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} markets)`);
-            
-            if (progressCallback) {
-                progressCallback({
-                    phase: 'analysis',
-                    current: batchNumber,
-                    total: totalBatches,
-                    message: `Analyzing markets (batch ${batchNumber}/${totalBatches})...`
-                });
-            }
-            
-            try {
-                // Prepare markets list for this batch
-                const marketsList = batch.map((market, index) => 
-                    `${i + index + 1}. ${market.ticker}: ${market.title} - ${market.description}`
-                ).join('\n');
-                
-                // Create optimized prompt for relevance analysis
-                const prompt = `Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the content. Based specifically on the content of the webpage what markets might the user be most interested in participating in? Return ONLY a JSON array of the top 5-8 most relevant markets with their relevance scores.
+            // Create prompt for global relevance analysis
+            const prompt = `Given the following webpage content and list of Polymarket prediction markets, identify which markets are most relevant to the content. Based specifically on the content of the webpage what markets might the user be most interested in participating in? Return ONLY a JSON array of the most relevant markets with their relevance scores.
+
+IMPORTANT: Only include markets that are TRULY relevant to the webpage content. If a market is not directly related to the topics, people, companies, or events mentioned in the content, do NOT include it. It's better to return an empty array than to include irrelevant markets.
+
+You are evaluating ALL markets together, so be very selective and only include the most relevant ones.
 
 WEBPAGE CONTENT:
 Title: ${pageContent.title}
@@ -563,135 +785,175 @@ Return ONLY a JSON array in this exact format:
   }
 ]
 
-Only include markets with relevance score 40 or higher. If no markets are highly relevant, return an empty array.`;
+Only include markets with relevance score 75 or higher. If no markets are highly relevant, return an empty array.`;
 
-                // Double-check token count before sending
-                const promptTokens = estimateTokens(prompt);
-                if (promptTokens > 15000) {
-                    console.warn(`Batch ${batchNumber} prompt too long (${promptTokens} tokens), skipping...`);
-                    continue;
-                }
-                
-                console.log(`Sending AI analysis request for batch ${batchNumber} (${promptTokens} estimated tokens)...`);
-                
-                // Create timeout promise
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('AI analysis timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
-                });
-                
-                // Create fetch promise for OpenAI API
-                const fetchPromise = fetch(`https://api.openai.com/v1/chat/completions`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer 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`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini',
-                        messages: [{ role: 'user', content: prompt }],
-                        temperature: 0.1,
-                        max_tokens: 1000
-                    })
-                });
-                
-                // Race between fetch and timeout
-                const response = await Promise.race([fetchPromise, timeoutPromise]);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-                }
-                
-                const data = await response.json();
-                
-                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-                    throw new Error('Invalid response format from OpenAI API');
-                }
-                
-                const aiResponse = data.choices[0].message.content.trim();
-                console.log(`AI Response for batch ${batchNumber}:`, aiResponse);
-                
-                // Parse AI response with improved handling for code blocks
-                let relevantTickers;
-                let parseAttempt = aiResponse;
-
-                // First, try to clean if wrapped in code block
-                if (parseAttempt.startsWith('```json') && parseAttempt.endsWith('```')) {
-                    parseAttempt = parseAttempt.slice(7, -3).trim();
-                } else if (parseAttempt.startsWith('```') && parseAttempt.endsWith('```')) {
-                    parseAttempt = parseAttempt.slice(3, -3).trim();
-                }
-
-                try {
-                    relevantTickers = JSON.parse(parseAttempt);
-                } catch (parseError) {
-                    console.error(`Failed to parse AI response for batch ${batchNumber}:`, parseError);
-                    
-                    // Fallback: Try to extract JSON array from response
-                    const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
-                    if (jsonMatch) {
-                        try {
-                            relevantTickers = JSON.parse(jsonMatch[0]);
-                        } catch (fallbackError) {
-                            console.warn(`Fallback parse failed for batch ${batchNumber}:`, fallbackError);
-                            continue;
-                        }
-                    } else {
-                        console.warn(`No JSON array found in response for batch ${batchNumber}, skipping...`);
-                        continue;
-                    }
-                }
-                
-                if (!Array.isArray(relevantTickers)) {
-                    console.warn(`Batch ${batchNumber} response is not an array, skipping...`);
-                    continue;
-                }
-                
-                // Match AI results with original market data
-                const batchRelevantMarkets = relevantTickers.map(aiMarket => {
-                    const originalMarket = marketsToAnalyze.find(m => m.ticker === aiMarket.ticker);
-                    if (!originalMarket) {
-                        console.warn(`Market ${aiMarket.ticker} not found in original list`);
-                        return null;
-                    }
-                    
-                    return {
-                        ...originalMarket,
-                        relevanceScore: aiMarket.relevanceScore,
-                        reason: aiMarket.reason
-                    };
-                }).filter(market => market !== null);
-                
-                allRelevantMarkets = allRelevantMarkets.concat(batchRelevantMarkets);
-                console.log(`Batch ${batchNumber} completed: ${batchRelevantMarkets.length} relevant markets found`);
-                
-                // Reduced delay between batches
-                if (i + batchSize < summarizedMarkets.length) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-                
-            } catch (error) {
-                console.error(`Error processing batch ${batchNumber}:`, error);
-                // Continue with next batch even if current batch fails
+            // Check token count before sending
+            const promptTokens = estimateTokens(prompt);
+            console.log(`Global analysis prompt tokens: ${promptTokens}`);
+            
+            if (promptTokens > 15000) {
+                console.warn(`Global analysis prompt too long (${promptTokens} tokens), falling back to batch processing...`);
+                // Fall back to batch processing if too many tokens
+                return await processMarketsInBatches(pageContent, contentText, summarizedMarkets, marketsToAnalyze, totalFetchedMarkets, displaySummary, progressCallback);
             }
+            
+            console.log(`Sending global AI analysis request (${promptTokens} estimated tokens)...`);
+            
+            // Create timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('AI analysis timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
+            });
+            
+            // Create fetch promise for OpenAI API
+            const fetchPromise = fetch(`https://api.openai.com/v1/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer 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`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.1,
+                    max_tokens: 1000
+                })
+            });
+            
+            // Race between fetch and timeout
+            const response = await Promise.race([fetchPromise, timeoutPromise]);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                throw new Error('Invalid response format from OpenAI API');
+            }
+            
+            const aiResponse = data.choices[0].message.content.trim();
+            console.log(`Global AI Response:`, aiResponse);
+            
+            // Parse AI response with improved handling for code blocks
+            let relevantTickers;
+            let parseAttempt = aiResponse;
+
+            // First, try to clean if wrapped in code block
+            if (parseAttempt.startsWith('```json') && parseAttempt.endsWith('```')) {
+                parseAttempt = parseAttempt.slice(7, -3).trim();
+            } else if (parseAttempt.startsWith('```') && parseAttempt.endsWith('```')) {
+                parseAttempt = parseAttempt.slice(3, -3).trim();
+            }
+
+            try {
+                relevantTickers = JSON.parse(parseAttempt);
+            } catch (parseError) {
+                console.error(`Failed to parse global AI response:`, parseError);
+                
+                // Fallback: Try to extract JSON array from response
+                const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    try {
+                        relevantTickers = JSON.parse(jsonMatch[0]);
+                    } catch (fallbackError) {
+                        console.warn(`Fallback parse failed for global analysis:`, fallbackError);
+                        throw new Error('Failed to parse AI response');
+                    }
+                } else {
+                    console.warn(`No JSON array found in global response, falling back to batch processing...`);
+                    return await processMarketsInBatches(pageContent, contentText, summarizedMarkets, marketsToAnalyze, totalFetchedMarkets, displaySummary, progressCallback);
+                }
+            }
+            
+            if (!Array.isArray(relevantTickers)) {
+                console.warn(`Global response is not an array, falling back to batch processing...`);
+                return await processMarketsInBatches(pageContent, contentText, summarizedMarkets, marketsToAnalyze, totalFetchedMarkets, displaySummary, progressCallback);
+            }
+            
+            // Match AI results with original market data and validate relevance scores
+            const allRelevantMarkets = relevantTickers.map(aiMarket => {
+                const originalMarket = marketsToAnalyze.find(m => m.ticker === aiMarket.ticker);
+                if (!originalMarket) {
+                    console.warn(`Market ${aiMarket.ticker} not found in original list`);
+                    return null;
+                }
+                
+                // Validate relevance score is a number and within reasonable range
+                const relevanceScore = typeof aiMarket.relevanceScore === 'number' ? aiMarket.relevanceScore : 0;
+                if (relevanceScore < 0 || relevanceScore > 100) {
+                    console.warn(`Invalid relevance score for market ${aiMarket.ticker}: ${aiMarket.relevanceScore}, setting to 0`);
+                    return null; // Skip invalid markets
+                }
+                
+                return {
+                    ...originalMarket,
+                    relevanceScore: relevanceScore,
+                    reason: aiMarket.reason || 'No reason provided'
+                };
+            }).filter(market => market !== null);
+            
+            console.log(`Global analysis completed: ${allRelevantMarkets.length} relevant markets found`);
+            
+            // Log relevance scores for debugging
+            if (allRelevantMarkets.length > 0) {
+                console.log(`Global relevance scores:`, allRelevantMarkets.map(m => `${m.ticker}: ${m.relevanceScore}`));
+            }
+            
+            // Sort by relevance score and filter out low-relevance markets
+            allRelevantMarkets.sort((a, b) => b.relevanceScore - a.relevanceScore);
+            
+            // Filter out markets with relevance score below 75
+            const highRelevanceMarkets = allRelevantMarkets.filter(market => 
+                market.relevanceScore >= 75
+            );
+            
+            // Log markets that were filtered out for debugging
+            const filteredOutMarkets = allRelevantMarkets.filter(market => market.relevanceScore < 75);
+            if (filteredOutMarkets.length > 0) {
+                console.log(`Filtered out ${filteredOutMarkets.length} low-relevance markets:`, 
+                    filteredOutMarkets.map(m => `${m.ticker}: ${m.relevanceScore}`));
+            }
+            
+            // Take top results from high-relevance markets only
+            const topRelevantMarkets = highRelevanceMarkets.slice(0, POLYMARKET_CONFIG.MAX_RELEVANT_MARKETS);
+            
+            console.log(`Filtered ${allRelevantMarkets.length} total markets down to ${highRelevanceMarkets.length} high-relevance markets (score >= 75)`);
+            
+            const processingTime = Date.now() - startTime;
+            console.log(`Found ${topRelevantMarkets.length} relevant Polymarket markets from global AI analysis in ${processingTime}ms`);
+            
+            // Final validation: only return markets if we have high-quality matches
+            if (topRelevantMarkets.length === 0) {
+                console.log('No markets met the high relevance threshold (75+), returning empty result');
+                return {
+                    success: true,
+                    markets: [],
+                    totalAnalyzed: summarizedMarkets.length,
+                    totalFetchedMarkets: totalFetchedMarkets,
+                    totalBatches: 1,
+                    processingTime: processingTime,
+                    contentSummary: displaySummary,
+                    message: 'No highly relevant markets found for this content'
+                };
+            }
+            
+            return {
+                success: true,
+                markets: topRelevantMarkets,
+                totalAnalyzed: summarizedMarkets.length,
+                totalFetchedMarkets: totalFetchedMarkets,
+                totalBatches: 1,
+                processingTime: processingTime,
+                contentSummary: displaySummary
+            };
+            
+        } catch (error) {
+            console.error(`Error in global analysis:`, error);
+            console.log('Falling back to batch processing...');
+            return await processMarketsInBatches(pageContent, contentText, summarizedMarkets, marketsToAnalyze, totalFetchedMarkets, displaySummary, progressCallback);
         }
-        
-        // Sort by relevance score and take top results
-        allRelevantMarkets.sort((a, b) => b.relevanceScore - a.relevanceScore);
-        const topRelevantMarkets = allRelevantMarkets.slice(0, POLYMARKET_CONFIG.MAX_RELEVANT_MARKETS);
-        
-        const processingTime = Date.now() - startTime;
-        console.log(`Found ${topRelevantMarkets.length} relevant Polymarket markets from AI analysis (from ${allRelevantMarkets.length} total candidates) in ${processingTime}ms`);
-        
-        return {
-            success: true,
-            markets: topRelevantMarkets,
-            totalAnalyzed: summarizedMarkets.length,
-            totalFetchedMarkets: totalFetchedMarkets,
-            totalBatches: totalBatches,
-            processingTime: processingTime,
-            contentSummary: displaySummary
-        };
     })();
     
     // Add overall timeout for the entire analysis
