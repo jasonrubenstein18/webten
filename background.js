@@ -2,11 +2,11 @@
 console.log('Market Suggestion Extension: Background router loaded');
 
 // Import shared configuration first
-importScripts('common/config.js');
+importScripts('/common/config.js');
 
 // Import module-specific background scripts
-importScripts('market-suggestions/market-suggestions-background.js');
-importScripts('market-suggestions/market-suggestions-poly-background.js');
+importScripts('/market-suggestions/market-suggestions-background.js');
+importScripts('/market-suggestions/market-suggestions-poly-background.js');
 
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

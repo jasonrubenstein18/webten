@@ -16,7 +16,6 @@ build/
 .env.development
 .env.production
 config.js
-common/config.js
 
 # IDE files
 .vscode/

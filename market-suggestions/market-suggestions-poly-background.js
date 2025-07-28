@@ -1,19 +1,16 @@
 // Background service worker for Polymarket integration
 console.log('Market Suggestion Extension: Polymarket Background script loaded');
 
+// Import configuration and API client (browser-compatible)
+importScripts('/common/config.js');
+importScripts('/market-suggestions/api-client.js');
+
 // Polymarket Gamma API configuration
-const GAMMA_BASE = 'https://gamma-api.polymarket.com';
+// Use var to allow redeclaration and prevent errors when script is imported multiple times
+var GAMMA_BASE = 'https://gamma-api.polymarket.com';
 
 // Configuration for Polymarket
-const POLYMARKET_CONFIG = {
-    MAX_PAGES: 50,        // Fetch up to 50 pages (10,000 markets max)
-    MARKETS_PER_PAGE: 200, // Markets per page (increased for efficiency)
-    MAX_RELEVANT_MARKETS: 8, // Maximum number of relevant markets to return
-    MAX_MARKETS_FOR_ANALYSIS: 10000, // Maximum markets for analysis
-    API_TIMEOUT: 30000, // 30 second timeout for individual API calls
-    MAX_RETRY_ATTEMPTS: 3,
-    RETRY_DELAY_BASE: 1000, // Base delay for exponential backoff
-};
+var POLYMARKET_CONFIG = CONFIG; // Use the same config as main extension
 
 // Generate AI-powered content summary using OpenAI
 async function generateAIContentSummary(title, summary) {
@@ -37,46 +34,12 @@ ${contentText}
 
 Summary (450 characters max):`;
 
-        // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('AI summary timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
-        });
-        
-        // Create fetch promise
-        const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                temperature: 0.3,
-                max_tokens: 200
-            })
-        });
-        
-        // Race between fetch and timeout
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            throw new Error('Invalid response format from OpenAI API');
-        }
-        
-        const aiSummary = data.choices[0].message.content.trim();
+        const aiSummary = await apiClient.openaiChatCompletion([
+            {
+                role: 'user',
+                content: prompt
+            }
+        ], 'gpt-4o-mini', 0.3, 200);
         
         // Ensure it's within 450 characters and ends with a complete sentence
         let finalSummary = aiSummary;
@@ -551,41 +514,9 @@ Only include markets with relevance score 75 or higher. If no markets are highly
             
             console.log(`Sending AI analysis request for batch ${batchNumber} (${promptTokens} estimated tokens)...`);
             
-            // Create timeout promise
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('AI analysis timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
-            });
-            
-            // Create fetch promise for OpenAI API
-            const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.1,
-                    max_tokens: 1000
-                })
-            });
-            
-            // Race between fetch and timeout
-            const response = await Promise.race([fetchPromise, timeoutPromise]);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-                throw new Error('Invalid response format from OpenAI API');
-            }
-            
-            const aiResponse = data.choices[0].message.content.trim();
+            const aiResponse = await apiClient.openaiChatCompletion([
+                { role: 'user', content: prompt }
+            ], 'gpt-4o-mini', 0.1, 1000);
             console.log(`AI Response for batch ${batchNumber}:`, aiResponse);
             
             // Parse AI response with improved handling for code blocks
@@ -799,41 +730,9 @@ Only include markets with relevance score 75 or higher. If no markets are highly
             
             console.log(`Sending global AI analysis request (${promptTokens} estimated tokens)...`);
             
-            // Create timeout promise
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('AI analysis timeout')), POLYMARKET_CONFIG.API_TIMEOUT);
-            });
-            
-            // Create fetch promise for OpenAI API
-            const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.1,
-                    max_tokens: 1000
-                })
-            });
-            
-            // Race between fetch and timeout
-            const response = await Promise.race([fetchPromise, timeoutPromise]);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-                throw new Error('Invalid response format from OpenAI API');
-            }
-            
-            const aiResponse = data.choices[0].message.content.trim();
+            const aiResponse = await apiClient.openaiChatCompletion([
+                { role: 'user', content: prompt }
+            ], 'gpt-4o-mini', 0.1, 1000);
             console.log(`Global AI Response:`, aiResponse);
             
             // Parse AI response with improved handling for code blocks

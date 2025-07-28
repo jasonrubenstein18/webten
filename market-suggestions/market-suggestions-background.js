@@ -1,9 +1,14 @@
 // Background service worker for the Chrome extension
 console.log('Market Suggestion Extension: Background script loaded');
 
+// Import configuration and API client (browser-compatible)
+importScripts('/common/config.js');
+importScripts('/market-suggestions/api-client.js');
+
 // Kalshi API configuration
-const BASE = 'https://api.elections.kalshi.com';
-const KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
+// Use var to allow redeclaration and prevent errors when script is imported multiple times
+var BASE = 'https://api.elections.kalshi.com';
+var KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
 
 // Fetch events from Kalshi API with pagination support
 async function fetchKalshiMarkets() {
@@ -105,70 +110,9 @@ function getRetryDelay(attempt) {
 }
 
 // OpenAI API functions with retry logic
+// Generate embedding for text using secure API client
 async function generateEmbedding(text, retryAttempt = 0) {
-    try {
-        console.log(`Generating embedding for text (attempt ${retryAttempt + 1}):`, text.substring(0, 100) + '...');
-        
-        // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('API request timeout')), CONFIG.API_TIMEOUT);
-        });
-        
-        // Create fetch promise
-        const fetchPromise = fetch(`${OPENAI_BASE_URL}/embeddings`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: CONFIG.EMBEDDING_MODEL,
-                input: text,
-                encoding_format: 'float'
-            })
-        });
-        
-        // Race between fetch and timeout
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.data || !data.data[0] || !data.data[0].embedding) {
-            throw new Error('Invalid response format from OpenAI API');
-        }
-        
-        return data.data[0].embedding;
-        
-    } catch (error) {
-        console.error(`Error generating embedding (attempt ${retryAttempt + 1}):`, error.message);
-        
-        // Retry logic
-        if (retryAttempt < CONFIG.MAX_RETRY_ATTEMPTS - 1) {
-            // Check if it's a retryable error
-            const isRetryable = error.message.includes('timeout') || 
-                              error.message.includes('Failed to fetch') ||
-                              error.message.includes('NetworkError') ||
-                              error.message.includes('429') || // Rate limit
-                              error.message.includes('500') || // Server error
-                              error.message.includes('502') || // Bad gateway
-                              error.message.includes('503');   // Service unavailable
-            
-            if (isRetryable) {
-                const delay = getRetryDelay(retryAttempt);
-                console.log(`Retrying in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return generateEmbedding(text, retryAttempt + 1);
-            }
-        }
-        
-        // If all retries failed or error is not retryable, throw the error
-        throw error;
-    }
+    return apiClient.generateEmbedding(text, retryAttempt);
 }
 
 // Calculate cosine similarity between two embeddings
@@ -409,46 +353,12 @@ ${contentText}
 
 Summary (450 characters max):`;
 
-        // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('AI summary timeout')), CONFIG.API_TIMEOUT);
-        });
-        
-        // Create fetch promise
-        const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                temperature: 0.3,
-                max_tokens: 200
-            })
-        });
-        
-        // Race between fetch and timeout
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            throw new Error('Invalid response format from OpenAI API');
-        }
-        
-        const aiSummary = data.choices[0].message.content.trim();
+        const aiSummary = await apiClient.openaiChatCompletion([
+            {
+                role: 'user',
+                content: prompt
+            }
+        ], 'gpt-4o-mini', 0.3, 200);
         
         // Ensure it's within 450 characters and ends with a complete sentence
         let finalSummary = aiSummary;
@@ -769,46 +679,12 @@ Only include markets with relevance score 40 or higher. If no markets are highly
                 
                 console.log(`Sending AI analysis request for batch ${batchNumber} (${promptTokens} estimated tokens)...`);
                 
-                // Create timeout promise
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('AI analysis timeout')), CONFIG.API_TIMEOUT);
-                });
-                
-                // Create fetch promise
-                const fetchPromise = fetch(`${OPENAI_BASE_URL}/chat/completions`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        temperature: 0.1,
-                        max_tokens: 1000
-                    })
-                });
-                
-                // Race between fetch and timeout
-                const response = await Promise.race([fetchPromise, timeoutPromise]);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-                }
-                
-                const data = await response.json();
-                
-                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-                    throw new Error('Invalid response format from OpenAI API');
-                }
-                
-                const aiResponse = data.choices[0].message.content.trim();
+                const aiResponse = await apiClient.openaiChatCompletion([
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ], 'gpt-4o-mini', 0.1, 1000);
                 console.log(`AI Response for batch ${batchNumber}:`, aiResponse);
                 
                 // Parse AI response with improved handling for code blocks
