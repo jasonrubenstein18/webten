@@ -212,8 +212,8 @@ function transformPolymarketMarket(market) {
             ticker: market.conditionId || market.id || 'UNKNOWN',
             title: title,
             yes_sub_title: title,
-            yes_ask: prices[yesIndex] || 0,
-            no_ask: prices[noIndex] || 0,
+            yes_ask: prices[yesIndex] !== null && prices[yesIndex] !== undefined ? prices[yesIndex] : null,
+            no_ask: prices[noIndex] !== null && prices[noIndex] !== undefined ? prices[noIndex] : null,
             volume_24h: parseFloat(market.volume24hr || market.volume || 0),
             status: market.active && !market.closed ? 'open' : 'closed'
         };
@@ -252,8 +252,8 @@ function transformPolymarketMarket(market) {
             ticker: market.conditionId || market.id || 'UNKNOWN',
             title: subTitle,
             yes_sub_title: subTitle,
-            yes_ask: prices[i] || 0,
-            no_ask: roundPrice(100 - (prices[i] || 0)), // Complement for multi-outcome (rounded)
+            yes_ask: prices[i] !== null && prices[i] !== undefined ? prices[i] : null,
+            no_ask: prices[i] !== null && prices[i] !== undefined ? roundPrice(100 - prices[i]) : null, // Complement for multi-outcome (rounded)
             volume_24h: parseFloat(market.volume24hr || market.volume || 0) / outcomes.length, // Approximate split
             status: market.active && !market.closed ? 'open' : 'closed'
         });
@@ -360,12 +360,12 @@ function transformGroupedMarkets(groupKey, groupData) {
         }
         
         // For binary markets, find the Yes price
-        let yesPrice = 0;
+        let yesPrice = null;
         if (outcomes.length === 2) {
             const yesIndex = outcomes.findIndex(outcome => outcome.toLowerCase() === 'yes');
-            yesPrice = yesIndex !== -1 ? (prices[yesIndex] || 0) : (prices[0] || 0);
+            yesPrice = yesIndex !== -1 ? (prices[yesIndex] !== null && prices[yesIndex] !== undefined ? prices[yesIndex] : null) : (prices[0] !== null && prices[0] !== undefined ? prices[0] : null);
         } else if (outcomes.length === 1) {
-            yesPrice = prices[0] || 0;
+            yesPrice = prices[0] !== null && prices[0] !== undefined ? prices[0] : null;
         }
         
         subMarkets.push({
@@ -373,7 +373,7 @@ function transformGroupedMarkets(groupKey, groupData) {
             title: outcomeTitle,
             yes_sub_title: outcomeTitle,
             yes_ask: yesPrice,
-            no_ask: roundPrice(100 - yesPrice), // Complement
+            no_ask: yesPrice !== null ? roundPrice(100 - yesPrice) : null, // Complement
             volume_24h: parseFloat(market.volume24hr || market.volume || 0),
             status: market.active && !market.closed ? 'open' : 'closed'
         });

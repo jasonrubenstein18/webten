@@ -446,8 +446,15 @@ header h1 {
     border-radius: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: #34c759;
     color: #ffffff;
+}
+
+.market-status.open {
+    background: #34c759;
+}
+
+.market-status.resolved {
+    background: #ff9500;
 }
 
 .market-details {
@@ -687,6 +694,46 @@ header h1 {
 
 .sub-market:last-child {
     margin-bottom: 0;
+}
+
+.sub-market.resolved {
+    background: #fff8f0;
+    border-color: #ff9500;
+}
+
+.resolution {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.resolution-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+}
+
+.resolution-badge.yes {
+    background: #34c759;
+}
+
+.resolution-badge.no {
+    background: #ff3b30;
+}
+
+.resolution-badge.unknown {
+    background: #86868b;
+}
+
+.resolution-text {
+    font-size: 12px;
+    color: #86868b;
+    font-weight: 500;
 }
 
 .sub-title {

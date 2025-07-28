@@ -530,28 +530,111 @@ async function fetchEventMarkets(eventTicker) {
         } while (cursor);
         
         // Process markets to extract relevant data
-        const processedMarkets = allMarkets.map(market => ({
-            ticker: market.ticker,
-            title: market.title,
-            subtitle: market.subtitle || '',
-            yes_sub_title: market.yes_sub_title || '',
-            no_sub_title: market.no_sub_title || '',
-            market_type: market.market_type || 'binary',
-            yes_bid: market.yes_bid,
-            yes_ask: market.yes_ask,
-            no_bid: market.no_bid,
-            no_ask: market.no_ask,
-            last_price: market.last_price,
-            volume: market.volume || 0,
-            volume_24h: market.volume_24h || 0,
-            open_interest: market.open_interest || 0,
-            close_time: market.close_time,
-            status: market.status,
-            rules_primary: market.rules_primary || '',
-            response_price_units: market.response_price_units || 'usd_cent'
-        }));
+        const processedMarkets = allMarkets.map(market => {
+            // Check for settlement/outcome information
+            let settlement = null;
+            let outcome = null;
+            
+            // Check various possible fields for settlement information
+            if (market.settlement) {
+                settlement = market.settlement;
+            } else if (market.outcome) {
+                outcome = market.outcome;
+            } else if (market.result) {
+                outcome = market.result;
+            }
+            
+            // Determine if market is resolved based on status and settlement info
+            let isResolved = market.status === 'settled' || market.status === 'resolved' || market.status === 'finalized' || settlement || outcome;
+            
+            // Only mark as resolved if status is explicitly inactive AND both prices are 100¢
+            // This indicates a truly closed/resolved market
+            if (!isResolved && market.status === 'inactive' && market.yes_ask !== null && market.no_ask !== null) {
+                if (market.yes_ask === 100 && market.no_ask === 100) {
+                    isResolved = true;
+                }
+            }
+            
+            // For resolved markets, determine the outcome
+            let resolvedOutcome = null;
+            if (isResolved) {
+                if (settlement) {
+                    resolvedOutcome = settlement;
+                } else if (outcome) {
+                    resolvedOutcome = outcome;
+                } else if (market.last_price !== null && market.last_price !== undefined) {
+                    // If last price is 0, it's likely "No", if 100, it's likely "Yes"
+                    resolvedOutcome = market.last_price === 0 ? 'No' : market.last_price === 100 ? 'Yes' : null;
+                } else if (market.yes_ask !== null && market.no_ask !== null && (market.status === 'inactive' || market.status === 'finalized')) {
+                    // For inactive or finalized markets with both prices at 100¢, check last_price for outcome
+                    if (market.yes_ask === 100 && market.no_ask === 100) {
+                        if (market.last_price !== null && market.last_price !== undefined) {
+                            // If last_price is 0, it's "No", if 100, it's "Yes"
+                            resolvedOutcome = market.last_price === 0 ? 'No' : market.last_price === 100 ? 'Yes' : 'No';
+                        } else {
+                            // Default to 'No' if no last_price available
+                            resolvedOutcome = 'No';
+                        }
+                    }
+                }
+            }
+            
+            return {
+                ticker: market.ticker,
+                title: market.title,
+                subtitle: market.subtitle || '',
+                yes_sub_title: market.yes_sub_title || '',
+                no_sub_title: market.no_sub_title || '',
+                market_type: market.market_type || 'binary',
+                yes_bid: market.yes_bid !== null && market.yes_bid !== undefined ? market.yes_bid : null,
+                yes_ask: market.yes_ask !== null && market.yes_ask !== undefined ? market.yes_ask : null,
+                no_bid: market.no_bid !== null && market.no_bid !== undefined ? market.no_bid : null,
+                no_ask: market.no_ask !== null && market.no_ask !== undefined ? market.no_ask : null,
+                last_price: market.last_price !== null && market.last_price !== undefined ? market.last_price : null,
+                volume: market.volume || 0,
+                volume_24h: market.volume_24h || 0,
+                open_interest: market.open_interest || 0,
+                close_time: market.close_time,
+                status: market.status,
+                isResolved: isResolved,
+                resolvedOutcome: resolvedOutcome,
+                settlement: settlement,
+                outcome: outcome,
+                rules_primary: market.rules_primary || '',
+                response_price_units: market.response_price_units || 'usd_cent'
+            };
+        });
         
         console.log(`Fetched ${processedMarkets.length} markets for event ${eventTicker}`);
+        
+        // Log some sample market data to debug settlement information
+        if (processedMarkets.length > 0) {
+            console.log('Sample market data structure:', {
+                ticker: processedMarkets[0].ticker,
+                status: processedMarkets[0].status,
+                isResolved: processedMarkets[0].isResolved,
+                resolvedOutcome: processedMarkets[0].resolvedOutcome,
+                settlement: processedMarkets[0].settlement,
+                outcome: processedMarkets[0].outcome,
+                last_price: processedMarkets[0].last_price,
+                yes_ask: processedMarkets[0].yes_ask,
+                no_ask: processedMarkets[0].no_ask
+            });
+            
+            // Log any markets that are being marked as resolved
+            const resolvedMarkets = processedMarkets.filter(m => m.isResolved);
+            if (resolvedMarkets.length > 0) {
+                console.log('Markets marked as resolved:', resolvedMarkets.map(m => ({
+                    ticker: m.ticker,
+                    status: m.status,
+                    resolvedOutcome: m.resolvedOutcome,
+                    yes_ask: m.yes_ask,
+                    no_ask: m.no_ask,
+                    last_price: m.last_price
+                })));
+            }
+        }
+        
         return processedMarkets;
         
     } catch (error) {
@@ -971,28 +1054,66 @@ function handleMarketSuggestionsMessage(request, sender, sendResponse) {
                         total: 1,
                         percentage: 75,
                         message: 'Fetching sub-markets...',
-                        details: 'Getting detailed market information...'
+                        details: 'Getting detailed market information in parallel...'
                     });
                     
-                    // Step 4: Fetch sub-markets
+                    // Step 4: Fetch sub-markets in parallel for better performance
+                    console.log(`Starting parallel fetch of ${relevantResult.markets.length} events...`);
+                    
+                    // Create parallel promises for all sub-market fetching
+                    const subMarketPromises = relevantResult.markets.map(async (event, index) => {
+                        try {
+                            console.log(`Starting fetch for event ${index + 1}/${relevantResult.markets.length}: ${event.ticker}`);
+                            const subMarkets = await fetchEventMarkets(event.ticker);
+                            event.subMarkets = subMarkets;
+                            
+                            // Update progress for this specific event
+                            const percentage = 75 + ((index + 1) / relevantResult.markets.length) * 10;
+                            sendProgress({
+                                phase: 'submarkets',
+                                current: index + 1,
+                                total: relevantResult.markets.length,
+                                percentage: Math.round(percentage),
+                                message: 'Fetching sub-markets...',
+                                details: `Completed ${index + 1}/${relevantResult.markets.length} events...`
+                            });
+                            
+                            return {
+                                event: event,
+                                subMarkets: subMarkets,
+                                success: true
+                            };
+                        } catch (error) {
+                            console.error(`Error fetching sub-markets for ${event.ticker}:`, error);
+                            event.subMarkets = [];
+                            return {
+                                event: event,
+                                subMarkets: [],
+                                success: false,
+                                error: error.message
+                            };
+                        }
+                    });
+                    
+                    // Execute all sub-market fetching in parallel
+                    const subMarketResults = await Promise.all(subMarketPromises);
+                    
+                    // Collect all sub-markets and handle any errors
                     const allSubMarkets = [];
-                    let processedEvents = 0;
-                    for (let event of relevantResult.markets) {
-                        const subMarkets = await fetchEventMarkets(event.ticker);
-                        event.subMarkets = subMarkets;
-                        allSubMarkets.push(...subMarkets);
-                        
-                        processedEvents++;
-                        const percentage = 75 + (processedEvents / relevantResult.markets.length) * 10;
-                        sendProgress({
-                            phase: 'submarkets',
-                            current: processedEvents,
-                            total: relevantResult.markets.length,
-                            percentage: Math.round(percentage),
-                            message: 'Fetching sub-markets...',
-                            details: `Processing event ${processedEvents}/${relevantResult.markets.length}...`
-                        });
-                    }
+                    let successCount = 0;
+                    let errorCount = 0;
+                    
+                    subMarketResults.forEach((result, index) => {
+                        if (result.success) {
+                            allSubMarkets.push(...result.subMarkets);
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            console.warn(`Failed to fetch sub-markets for event ${index}: ${result.error}`);
+                        }
+                    });
+                    
+                    console.log(`Parallel sub-market fetching completed: ${successCount} successful, ${errorCount} failed, ${allSubMarkets.length} total sub-markets`);
 
                     // Step 5: Analyze mispricing
                     sendProgress({

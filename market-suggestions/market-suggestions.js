@@ -221,10 +221,14 @@ function createMarketElement(market) {
     // Construct platform-specific market URL
     const marketUrl = getMarketUrl(market);
     
+    // Determine market status
+    const marketStatus = market.isResolved ? 'resolved' : 'open';
+    const statusText = market.isResolved ? 'RESOLVED' : 'OPEN';
+    
     marketDiv.innerHTML = `
         <div class="market-header">
             <div class="market-title">${escapeHtml(market.title)}</div>
-            <div class="market-status open">OPEN</div>
+            <div class="market-status ${marketStatus}">${statusText}</div>
         </div>
         <div class="market-details">
             <div class="market-ticker">${escapeHtml(market.ticker)}</div>
@@ -431,50 +435,84 @@ function createRelevantMarketElement(market) {
     
     // Format functions
     const formatPrice = (price) => {
-    if (price == null) return '—';
-    // Round to nearest tenth to avoid floating point display issues
-    const rounded = Math.round(price * 10) / 10;
-    return `${rounded}¢`;
-};
+        if (price == null || price === undefined) return '—';
+        if (price === 0) return '0¢';
+        // Round to nearest tenth to avoid floating point display issues
+        const rounded = Math.round(price * 10) / 10;
+        return `${rounded}¢`;
+    };
     const formatVolume = (vol) => {
-        if (!vol) return '0';
+        if (vol == null || vol === undefined || vol === 0) return '0';
         return vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : vol.toString();
     };
     
     // Build sub-markets HTML
     let subMarketsHTML = '';
     if (market.subMarkets && market.subMarkets.length > 0) {
-        subMarketsHTML = market.subMarkets.map(sub => `
-            <div class="sub-market">
-                <div class="sub-title">${escapeHtml(sub.yes_sub_title || sub.title)}</div>
-                <div class="pricing">
-                    <div class="pricing-row">
-                        <span class="label yes">Yes:</span>
-                        <span class="price">${formatPrice(sub.yes_ask)}</span>
+        subMarketsHTML = market.subMarkets.map(sub => {
+            // Check if this sub-market is resolved
+            // Only mark as resolved if explicitly flagged by the backend or if status is inactive
+            let isResolved = sub.isResolved;
+            let resolvedOutcome = sub.resolvedOutcome;
+            
+            // Don't infer resolution from pricing patterns alone - only trust explicit status
+            
+            if (isResolved && resolvedOutcome) {
+                // Show resolved market
+                return `
+                    <div class="sub-market resolved">
+                        <div class="sub-title">${escapeHtml(sub.yes_sub_title || sub.title)}</div>
+                        <div class="resolution">
+                            <div class="resolution-badge ${resolvedOutcome.toLowerCase()}">${resolvedOutcome.toUpperCase()}</div>
+                            <div class="resolution-text">Market resolved to ${resolvedOutcome}</div>
+                        </div>
+                        <div class="sub-details">
+                            <span class="sub-ticker">${escapeHtml(sub.ticker)}</span>
+                            <span class="volume">Vol: ${formatVolume(sub.volume_24h)}</span>
+                        </div>
                     </div>
-                    <div class="pricing-row">
-                        <span class="label no">No:</span>
-                        <span class="price">${formatPrice(sub.no_ask)}</span>
+                `;
+            } else {
+                // Show active market with pricing
+                return `
+                    <div class="sub-market">
+                        <div class="sub-title">${escapeHtml(sub.yes_sub_title || sub.title)}</div>
+                        <div class="pricing">
+                            <div class="pricing-row">
+                                <span class="label yes">Yes:</span>
+                                <span class="price">${formatPrice(sub.yes_ask)}</span>
+                            </div>
+                            <div class="pricing-row">
+                                <span class="label no">No:</span>
+                                <span class="price">${formatPrice(sub.no_ask)}</span>
+                            </div>
+                        </div>
+                        <div class="sub-details">
+                            <span class="sub-ticker">${escapeHtml(sub.ticker)}</span>
+                            <span class="volume">Vol: ${formatVolume(sub.volume_24h)}</span>
+                        </div>
+                        ${sub.mispricing && sub.mispricing !== 'No mispricing detected' && sub.mispricing !== 'Error analyzing mispricing' && sub.mispricing !== 'No Mispricing Found' && !sub.mispricing.startsWith('No Mispricing Found') ? `<div class="mispricing-analysis">${escapeHtml(sub.mispricing)}</div>` : ''}
                     </div>
-                </div>
-                <div class="sub-details">
-                    <span class="sub-ticker">${escapeHtml(sub.ticker)}</span>
-                    <span class="volume">Vol: ${formatVolume(sub.volume_24h)}</span>
-                </div>
-                ${sub.mispricing && sub.mispricing !== 'No mispricing detected' && sub.mispricing !== 'Error analyzing mispricing' && sub.mispricing !== 'No Mispricing Found' && !sub.mispricing.startsWith('No Mispricing Found') ? `<div class="mispricing-analysis">${escapeHtml(sub.mispricing)}</div>` : ''}
-            </div>
-        `).join('');
+                `;
+            }
+        }).join('');
     } else {
         // Fallback if no sub-markets
         subMarketsHTML = '<div class="no-pricing">Pricing data unavailable</div>';
     }
+    
+    // Determine market status
+    // Only mark as resolved if explicitly flagged by the backend
+    const hasResolvedSubMarkets = market.subMarkets && market.subMarkets.some(sub => sub.isResolved);
+    const marketStatus = hasResolvedSubMarkets ? 'resolved' : 'open';
+    const statusText = hasResolvedSubMarkets ? 'RESOLVED' : 'OPEN';
     
     marketDiv.innerHTML = `
         <div class="market-header">
             <div class="market-title">
                 ${escapeHtml(market.title)}
             </div>
-            <div class="market-status open">OPEN</div>
+            <div class="market-status ${marketStatus}">${statusText}</div>
         </div>
         <div class="sub-markets">
             ${subMarketsHTML}
