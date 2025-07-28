@@ -1,0 +1,43 @@
+{
+  "name": "webten-proxy",
+  "description": "Secure API proxy server for WebTen browser extension",
+  "repository": "https://github.com/yourusername/webten",
+  "logo": "https://node-js-sample.herokuapp.com/node.png",
+  "keywords": ["node", "express", "proxy", "api", "security"],
+  "env": {
+    "OPENAI_API_KEY": {
+      "description": "Your OpenAI API key",
+      "required": true
+    },
+    "GROK_API_KEY": {
+      "description": "Your Grok API key",
+      "required": true
+    },
+    "OPENAI_BASE_URL": {
+      "description": "OpenAI API base URL",
+      "value": "https://api.openai.com/v1",
+      "required": false
+    },
+    "GROK_BASE_URL": {
+      "description": "Grok API base URL",
+      "value": "https://api.x.ai/v1",
+      "required": false
+    },
+    "GROK_MODEL": {
+      "description": "Grok model to use",
+      "value": "grok-3-latest",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+} 
