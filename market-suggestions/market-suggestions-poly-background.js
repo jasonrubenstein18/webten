@@ -77,8 +77,20 @@ async function fetchAllPolymarketMarkets() {
         let allMarkets = [];
         let offset = 0;
         let pageCount = 0;
-        const maxPages = POLYMARKET_CONFIG.MAX_PAGES;
+        // Polymarket's Gamma API caps offset-based pagination at offset ~2000 and
+        // returns HTTP 422 ("offset too large, use /markets/keyset...") beyond that.
+        // The keyset endpoint can page further but loops/ignores the cursor as soon
+        // as a sort order or volume filter is applied, so the practical maximum we
+        // can retrieve *ranked by volume* (i.e. the most tradeable markets) is the
+        // top ~2100. Page until we hit that cap, an empty page, or our page budget.
+        const maxPages = POLYMARKET_CONFIG.POLYMARKET_MAX_PAGES || POLYMARKET_CONFIG.MAX_PAGES;
         const limit = POLYMARKET_CONFIG.MARKETS_PER_PAGE;
+        let reachedOffsetCap = false;
+        
+        // `active=true&closed=false` alone still lets through markets whose end date
+        // has already passed (expired, awaiting resolution). `end_date_min` restricts
+        // results to markets that are still genuinely open/tradeable right now.
+        const nowIso = new Date().toISOString();
         
         do {
             pageCount++;
@@ -87,10 +99,11 @@ async function fetchAllPolymarketMarkets() {
             const params = new URLSearchParams({
                 limit: limit.toString(),
                 offset: offset.toString(),
-                active: 'true',      // Only get active markets
-                closed: 'false',     // Exclude closed markets
+                active: 'true',          // Only get active markets
+                closed: 'false',         // Exclude closed markets
+                end_date_min: nowIso,    // Exclude markets whose end date has already passed
                 order: 'volume',
-                ascending: 'false'   // Sort by volume descending
+                ascending: 'false'       // Sort by volume descending
             });
             
             const url = `${GAMMA_BASE}/markets?${params}`;
@@ -108,6 +121,14 @@ async function fetchAllPolymarketMarkets() {
             
             if (!response.ok) {
                 const errorText = await response.text();
+                // HTTP 422 means we've reached the API's offset pagination ceiling
+                // (~2100 markets). This is expected, not an error — keep whatever we
+                // collected so far rather than failing the whole request.
+                if (response.status === 422) {
+                    console.warn(`Reached Polymarket offset pagination cap at offset ${offset} (HTTP 422). Stopping with ${allMarkets.length} markets collected.`);
+                    reachedOffsetCap = true;
+                    break;
+                }
                 console.error('Markets API Error response:', errorText);
                 throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
             }
@@ -133,17 +154,22 @@ async function fetchAllPolymarketMarkets() {
                 console.log(`Total markets with pricing collected so far: ${allMarkets.length}`);
             }
             
-            // Check if we got fewer markets than requested (last page)
-            if (!markets || markets.length < limit) {
+            // The Gamma API caps each response at ~100 markets regardless of the
+            // requested `limit`, so we can't detect the last page by comparing
+            // against `limit`. Instead, advance the offset by however many markets
+            // we actually received and stop only when a page comes back empty.
+            if (!markets || markets.length === 0) {
                 break;
             }
             
-            offset += limit;
+            offset += markets.length;
             
         } while (pageCount < maxPages);
         
         console.log(`Markets pagination complete. Fetched ${pageCount} pages with ${allMarkets.length} total markets with pricing.`);
-        console.log(`Total API markets available: ~${pageCount * limit} (estimated)`);
+        if (reachedOffsetCap) {
+            console.log('Note: Polymarket only allows fetching the top ~2100 markets by volume via its API; lower-volume markets beyond that cap are not retrievable in ranked order.');
+        }
         console.log(`Valid markets with pricing: ${allMarkets.length}`);
         
         return allMarkets;

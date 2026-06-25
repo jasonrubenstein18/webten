@@ -38,7 +38,8 @@ if (typeof self.CONFIG === 'undefined') {
         EVENTS_PER_PAGE: 200, // For Kalshi
         KALSHI_PAGE_DELAY: 250, // ms between paginated Kalshi requests to avoid rate limiting
         KALSHI_MAX_CONCURRENCY: 4, // max simultaneous Kalshi event fetches to avoid rate limiting
-        MARKETS_PER_PAGE: 200, // For Polymarket
+        MARKETS_PER_PAGE: 100, // For Polymarket (Gamma API hard-caps each response at 100)
+        POLYMARKET_MAX_PAGES: 25, // Polymarket offset pagination is capped by the API at offset ~2000 (HTTP 422 beyond), i.e. ~2100 markets max when sorted by volume
         MAX_RELEVANT_MARKETS: 8,
         MAX_MARKETS_FOR_ANALYSIS: 4000,
         API_TIMEOUT: 30000,

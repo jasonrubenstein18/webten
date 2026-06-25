@@ -1,198 +1,157 @@
-# Market Suggestions Chrome Extension
+# Webten
 
-A Chrome extension that analyzes webpage content and suggests relevant prediction markets from Kalshi using AI-powered semantic matching and real-time API integration.
+A Manifest V3 Chrome extension that reads the content of the page you are on and surfaces relevant prediction markets (Kalshi and Polymarket), plus an on-demand page summarizer. All LLM calls are routed through a thin server-side proxy so API keys never ship in the extension bundle.
 
-## 🚀 New Features
+## What it does
 
-- 🧠 **AI-Powered Semantic Matching**: Uses OpenAI embeddings to find markets most relevant to webpage content
-- 🔍 **Intelligent Page Analysis**: Automatically extracts and analyzes webpage content for market suggestions
-- ⚡ **Real-time Relevance Scoring**: Shows similarity scores for suggested markets
-- 🎯 **Smart Content Extraction**: Focuses on main article content while filtering out navigation and ads
+Two independent features, selected from the popup:
 
-## Features
+1. **Market Suggestions** — extracts the main content of the active tab, pulls the live market universe from Kalshi or Polymarket, and uses an LLM to rank which markets are most relevant to the page. Results render with prices and links back to the platform.
+2. **Understand Content** — extracts the page content and produces either a structured deep summary or a short newsletter-style summary via Grok.
 
-- 🔍 **Real-time Market Fetching**: Connects directly to Kalshi's API to fetch up-to-date market data
-- 🧠 **Semantic Analysis**: AI-powered matching between webpage content and prediction markets
-- 🎨 **Modern UI**: Clean, responsive interface with purple gradient design
-- 🔐 **Secure Authentication**: Implements RSA-PSS signing for API authentication
-- 📊 **Platform Support**: Currently supports Kalshi markets with Polymarket integration planned
-- 📋 **Easy Actions**: View markets on Kalshi or copy market tickers to clipboard
-- ⚡ **Fast Performance**: Optimized for quick market discovery with intelligent caching
+## Architecture
 
-## Installation
+```
+Popup (UI)                Service worker (background.js)            External
+-----------               ------------------------------           --------
+popup.html ──nav──┐
+                  ├─ market-suggestions/  ──action:──┐
+understand-       │   market-suggestions.html        │  market-suggestions:*   ┌─ Kalshi REST API
+content/  ────────┘   (Kalshi + Polymarket UI)       ├──────────────────────►  │  Polymarket Gamma API
+                                                      │  polymarket:*           └─ Proxy ─► OpenAI / Grok
+contentScript.js ◄── action: extractContent ─────────┤  understand-content:*
+(injected, all_urls)                                  └─ legacy (no prefix)
+```
 
-### Prerequisites
-- Chrome browser (version 88+)
-- OpenAI API key (for semantic matching)
-- Node.js (for building dependencies)
+- **`background.js`** is the only registered service worker. It `importScripts` the shared config and the two market-suggestions backgrounds, then routes every `chrome.runtime` message by action prefix (`market-suggestions:`, `polymarket:`, `understand-content:`, with an unprefixed legacy fallback that maps to the Kalshi handler). Understand Content is handled inline in this file; the market handlers live in their own modules.
+- **`contentScript.js`** runs on `<all_urls>` at `document_end`. It responds to `extractContent` by pulling the primary article content (priority selectors for `article`/`main`/common CMS classes), filtering nav/ads/sidebars heuristically, capping `text` at 3000 chars and `summary` at 1000 chars. It does not call any APIs.
+- **Proxy (`server/proxy.js`)** is an Express service (deployed to Heroku) that holds `OPENAI_API_KEY` and `GROK_API_KEY` and forwards `POST /api/openai/*` and `POST /api/grok/*` to the upstream providers. The extension only ever talks to the proxy; keys are never in client code.
+- **API client (`market-suggestions/api-client.js`)** wraps the proxy with a request timeout, exponential-backoff retries on transient/429/5xx errors, an in-memory response cache, and helpers `openaiChatCompletion`, `grokChatCompletion`, and `generateEmbedding`.
 
-### Setup Instructions
+## Request flow: Market Suggestions
 
-1. **Clone or download** this repository to your local machine
-2. **Navigate** to the project directory in your terminal
-3. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-4. **Configure API Keys**:
-   - Add your OpenAI API key to the `.env` file or update `background.js`
-   - Kalshi demo API credentials are pre-configured
-5. **Load the extension in Chrome**:
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode" (toggle in top right)
-   - Click "Load unpacked"
-   - Select the `webten` directory (this folder)
+Both platforms follow the same shape; the difference is the market source and the relevance threshold.
 
-## Usage
+1. Popup sends `{platform}:analyzePageContent` to the service worker.
+2. The worker asks the content script for the page content via `extractContent`.
+3. The worker fetches the current market universe (see platform notes below).
+4. The page content plus a compact market list is sent to OpenAI (`gpt-4o-mini`) which returns a JSON array of `{ ticker, relevanceScore, reason }`. Markets are filtered by a minimum score, sorted, and truncated to `MAX_RELEVANT_MARKETS` (8).
+5. Progress is streamed back to the popup via `progressUpdate` messages throughout.
 
-### Semantic Market Analysis (New!)
+Relevance ranking is done by the LLM returning structured JSON, not by vector similarity. (There is legacy embedding/cosine code on the Kalshi path that is not used by the active ranking flow.)
 
-1. **Navigate** to any news article, blog post, or webpage with content
-2. **Click** the Market Suggestions extension icon in your Chrome toolbar
-3. **Click "Analyze Page"** to:
-   - Extract and analyze the webpage content
-   - Generate AI embeddings for semantic matching
-   - Find the most relevant active Kalshi markets
-   - Display results with relevance scores
-4. **View relevant markets** ranked by similarity to the page content
-5. **Click any market** to open it directly on Kalshi for trading
+### Kalshi (`market-suggestions/market-suggestions-background.js`)
 
-### Traditional Market Browsing
+- Source: `GET https://api.elections.kalshi.com/trade-api/v2/events?status=open` (public, no auth), paginated by cursor up to `MAX_PAGES` x `EVENTS_PER_PAGE`, with `KALSHI_PAGE_DELAY` between pages and a 429-aware retry that honors `Retry-After`.
+- Relevant events are expanded into sub-markets via `/trade-api/v2/markets?event_ticker=...` with bounded concurrency (`KALSHI_MAX_CONCURRENCY`).
+- Price/volume normalization handles Kalshi's schema change: legacy integer-cent fields (`yes_bid`, `last_price`, ...) fall back to the newer dollar-string fields (`yes_bid_dollars`, ...) and `*_fp` floats.
+- Optional per-market mispricing analysis via Grok, skipped entirely when more than `MISPRICING_SKIP_THRESHOLD` (30) markets match, and cached per ticker.
 
-1. **Click "All Markets"** to browse all available Kalshi markets
-2. **Switch platforms** using the Kalshi/Polymarket tabs
-3. **Copy tickers** by clicking the copy button on any market card
+### Polymarket (`market-suggestions/market-suggestions-poly-background.js`)
 
-### How Semantic Matching Works
+- Source: `GET https://gamma-api.polymarket.com/markets` with `active=true&closed=false&end_date_min=<now>&order=volume&ascending=false`.
+- Markets are grouped by parent event and transformed into Kalshi-shaped multi-outcome objects (prices converted to cents).
+- Relevance threshold is stricter (>= 75) than Kalshi (>= 40); a single global ranking call is used when the prompt fits the token budget, otherwise it falls back to batched ranking.
 
-The extension uses advanced AI to understand content:
+**Important API constraints (verified against the live Gamma API):**
 
-1. **Content Extraction**: Intelligently extracts main article content, filtering out navigation, ads, and sidebars
-2. **Text Processing**: Cleans and summarizes content for optimal analysis
-3. **Embedding Generation**: Uses OpenAI's text-embedding-3-small model to create semantic vectors
-4. **Similarity Calculation**: Compares content embeddings with cached market embeddings using cosine similarity
-5. **Relevance Ranking**: Returns top matches above a similarity threshold with percentage scores
+- Each response is hard-capped at **100 markets** regardless of the requested `limit`. Pagination therefore advances `offset` by the actual count received, not by `limit`.
+- Offset pagination is capped at `offset ~2000`; beyond that the API returns `HTTP 422` ("offset too large, use /markets/keyset"). The fetch treats 422 as a clean stop, not an error.
+- The `/markets/keyset` endpoint can page deeper but **loops on the first ~100 results as soon as any sort order or volume filter is applied**, so it cannot return high-volume markets in ranked order.
+- Net effect: the maximum retrievable set ranked by volume is the **top ~2100 markets**, which is what the extension fetches. Polymarket exposes far more total markets (180k+), but the long tail is near-zero volume and not retrievable in ranked order.
 
-### Example Use Cases
+## Request flow: Understand Content
 
-- **News Articles**: Read about election coverage → Get relevant political prediction markets
-- **Sports Articles**: Read about upcoming games → Get sports betting markets
-- **Economic News**: Read about inflation → Get economic prediction markets
-- **Tech News**: Read about AI developments → Get tech company markets
+1. Popup sends `understand-content:analyzeContent` (deep) or `understand-content:quickSummary` (newsletter-style).
+2. The worker extracts page content, then calls Grok (`grok-3-latest`) with the corresponding prompt and a request timeout.
+3. The summary is returned to the popup; `understand-content:progressUpdate` messages drive the progress UI.
 
-## Technical Details
+## Configuration
 
-### AI Integration
-- **OpenAI API**: Uses text-embedding-3-small for semantic analysis
-- **Embedding Caching**: Intelligent caching system to minimize API calls
-- **Similarity Threshold**: Configurable relevance threshold (default: 50%)
-- **Batch Processing**: Efficient batch processing for market embeddings
+Runtime config lives in `common/config.js`, which is **generated** by `scripts/build-config.js` from `.env`. Do not edit the generated file by hand.
 
-### Architecture
-- **Manifest V3**: Uses the latest Chrome extension architecture
-- **Background Script**: Handles API authentication, AI processing, and market matching
-- **Content Script**: Enhanced webpage content extraction and analysis
-- **Popup Interface**: Modern dual-mode UI (Analyze Page vs All Markets)
+`.env` (see `.env.example`):
 
-### API Integration
-- **Kalshi Authentication**: RSA-PSS signing using node-forge library
-- **OpenAI Integration**: Secure API key management for embeddings
-- **Rate Limiting**: Respects both Kalshi and OpenAI API rate limits
-- **Error Handling**: Graceful handling of API errors with user feedback
-- **Active Market Filtering**: Only shows currently tradeable markets
+```
+PROXY_URL=https://<your-proxy-host>
+OPENAI_API_KEY=sk-...     # consumed by the proxy build step / proxy server
+GROK_API_KEY=...          # consumed by the proxy build step / proxy server
+```
 
-### Performance Optimizations
-- **Embedding Caching**: 30-minute cache for market embeddings
-- **Batch Processing**: Processes markets in batches to avoid rate limits
-- **Content Optimization**: Limits content to 3000 characters for efficient processing
-- **Smart Extraction**: Prioritizes main content areas over peripheral elements
+Key `CONFIG` values (in `common/config.js`):
 
-## Development
+| Key | Default | Purpose |
+| --- | --- | --- |
+| `MAX_PAGES` | 20 | Kalshi event pagination cap |
+| `EVENTS_PER_PAGE` | 200 | Kalshi events per page |
+| `MARKETS_PER_PAGE` | 100 | Polymarket page size (matches the API's hard cap) |
+| `POLYMARKET_MAX_PAGES` | 25 | Polymarket pagination cap (sized to reach the ~2100 offset ceiling) |
+| `MAX_RELEVANT_MARKETS` | 8 | Max suggestions returned |
+| `KALSHI_MAX_CONCURRENCY` | 4 | Parallel Kalshi sub-market fetches |
+| `MISPRICING_SKIP_THRESHOLD` | 30 | Skip Grok mispricing above this match count |
+| `API_TIMEOUT` / `ANALYSIS_TIMEOUT` | 30s / 180s | Per-request and per-analysis timeouts |
 
-### Project Structure
+The relevance score thresholds (Kalshi 40, Polymarket 75) are currently inlined in the two market background scripts.
+
+## Build and install
+
+Prerequisites: Chrome 88+, Node.js.
+
+```bash
+npm install
+npm run build        # generates common/config.js, builds CSS, copies forge into lib/
+```
+
+Load the unpacked extension:
+
+1. Open `chrome://extensions/` and enable Developer mode.
+2. Click "Load unpacked" and select this directory.
+3. After changing `background.js` or any imported background script, reload the extension so the service worker is re-registered.
+
+Useful scripts:
+
+- `npm run build:config` — regenerate `common/config.js` from `.env`.
+- `npm run build:css` / `npm run watch:css` — Tailwind build / watch.
+- `npm run proxy:dev` / `npm run proxy:start` — run the proxy locally (`server/`).
+- `npm run heroku:deploy` — deploy the proxy.
+- `npm run test:proxy` — smoke-test the deployed proxy.
+
+## Project layout
+
 ```
 webten/
-├── manifest.json          # Extension configuration
-├── background.js          # Service worker with AI integration
-├── popup.html            # Enhanced popup with dual modes
-├── popup.css             # Modern styling with relevance indicators
-├── popup.js              # Popup functionality with semantic features
-├── contentScript.js      # Enhanced content extraction
-├── test-page.html        # Test page for semantic matching
-├── .env                  # API keys configuration
-├── lib/                  # External libraries
-│   ├── forge.min.js      # RSA signing library
-│   └── emailjs.min.js    # Email functionality
-└── package.json          # Dependencies and scripts
+├── manifest.json                         # MV3 manifest; declares background.js, content script, host permissions
+├── background.js                         # Service worker router + Understand Content (Grok) handlers
+├── popup.html / popup.js / popup.css     # Top-level navigation between the two features
+├── contentScript.js                      # Page content extraction (responds to extractContent)
+├── common/
+│   ├── config.js                         # GENERATED runtime config (proxy URL, CONFIG)
+│   ├── api-client.js                     # Shared proxy client (timeout, retry, cache)
+│   └── content-extraction.js, utils.js, tab-utils.js
+├── market-suggestions/
+│   ├── market-suggestions.html/.js/.css  # Platform selection + results UI
+│   ├── market-suggestions-background.js  # Kalshi fetch, ranking, mispricing
+│   ├── market-suggestions-poly-background.js  # Polymarket fetch, grouping, ranking
+│   └── api-client.js                     # Proxy client instance for this module
+├── understand-content/                   # Summarizer UI + summary viewer
+├── server/
+│   ├── proxy.js                          # Express proxy for OpenAI + Grok
+│   └── Procfile, app.json, package.json
+├── scripts/                              # Config build + proxy deploy/test
+└── lib/                                  # forge.min.js, emailjs.min.js
 ```
 
-### Configuration
+## Security and privacy
 
-Update these settings in `background.js`:
+- API keys live only on the proxy. The extension authenticates to nothing client-side; the Kalshi and Polymarket endpoints used are public.
+- Page content is extracted locally and sent only to the proxy (and from there to OpenAI/Grok) to perform ranking and summarization. No content is otherwise persisted server-side.
+- Caching is local: market embeddings/mispricing results use `chrome.storage.local`; the API client keeps an in-memory response cache.
+- Host permissions are scoped to the Kalshi, Polymarket, and proxy origins.
 
-```javascript
-const CONFIG = {
-    SIMILARITY_THRESHOLD: 0.5,    // Minimum similarity for relevance
-    MAX_RELEVANT_MARKETS: 8,      # Maximum markets to return
-    EMBEDDING_MODEL: 'text-embedding-3-small'
-};
-```
+## Notes and caveats
 
-### Testing
+- The Polymarket volume-ranked universe is API-limited to ~2100 markets (see constraints above); this is a platform limitation, not a configuration knob.
+- `node-forge` is bundled for RSA-PSS signing of authenticated Kalshi requests; the current relevance flow only uses public, unauthenticated Kalshi endpoints, so it is not on the active path.
+- Version numbers are tracked in `manifest.json` (canonical) and may lag in `popup.html`/`package.json`.
 
-Use the included `test-page.html` to test semantic matching:
-
-1. Open `test-page.html` in Chrome
-2. Click the extension icon
-3. Click "Analyze Page" to see relevant political markets
-
-## Security & Privacy
-
-- **API Keys**: Stored securely in background script (use environment variables in production)
-- **Content Processing**: Page content is processed locally and sent only to OpenAI for embeddings
-- **No Data Storage**: No personal data is stored or transmitted beyond API requirements
-- **HTTPS Only**: All API calls use secure HTTPS connections
-- **Minimal Permissions**: Only requests necessary permissions for functionality
-
-## Roadmap
-
-- [x] **AI Semantic Matching**: Match webpage content to relevant markets ✅
-- [x] **Enhanced Content Extraction**: Smart content analysis ✅
-- [x] **Relevance Scoring**: Show similarity percentages ✅
-- [ ] **Polymarket Integration**: Add full Polymarket API support with semantic matching
-- [ ] **Market Filtering**: Filter by category, date, popularity
-- [ ] **Price Tracking**: Show current market prices and trends
-- [ ] **Notifications**: Alert users about relevant market updates
-- [ ] **User Preferences**: Save favorite markets and analysis settings
-- [ ] **Multi-language Support**: Support for non-English content analysis
-
-## API Costs
-
-The extension uses OpenAI's embedding API:
-- **Cost**: ~$0.00002 per 1K tokens
-- **Typical Usage**: ~$0.001 per page analysis
-- **Caching**: Reduces costs by caching market embeddings
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with various webpage types
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Support
-
-For issues, questions, or suggestions:
-- Open an issue on GitHub
-- Check the browser console for error messages
-- Ensure you have valid API keys configured
-- Test with the included `test-page.html`
-
----
-
-**Note**: This extension is for educational and research purposes. The AI matching is designed to help discover relevant markets but should not be considered financial advice. Always conduct your own research before making any financial decisions in prediction markets.
+This project is for research and educational use. Market suggestions are generated heuristically by an LLM and are not financial advice.
