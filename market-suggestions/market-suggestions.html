@@ -4,43 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Market Suggestions</title>
-    <link rel="stylesheet" href="market-suggestions.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../dist/styles.css">
 </head>
-<body>
+<body class="page-market">
     <div class="container">
         <header>
-            <div class="back-button">
-                <button id="back-btn" class="btn-back">← Back</button>
+            <div class="header-top">
+                <div class="back-button">
+                    <button id="back-btn" class="btn-back">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                        Back
+                    </button>
+                </div>
+                <h1>Market Suggestions</h1>
             </div>
-            <h1>Market Suggestions</h1>
             <div class="platform-tabs">
                 <button id="kalshi-btn" class="tab-btn">Kalshi</button>
                 <button id="polymarket-btn" class="tab-btn">Polymarket</button>
             </div>
         </header>
-        
+
         <div class="content">
             <div class="loading">
                 <div class="spinner"></div>
                 <div class="progress-container">
                     <div class="progress-text">
-                        <span class="progress-message">Analyzing markets...</span>
+                        <span class="progress-message">Analyzing markets&hellip;</span>
                         <span class="progress-percentage">0%</span>
                     </div>
                     <div class="progress-bar">
                         <div class="progress-fill"></div>
                     </div>
-                    <div class="progress-details">Initializing analysis...</div>
+                    <div class="progress-details">Initializing analysis&hellip;</div>
                 </div>
             </div>
-            
+
             <div class="error" style="display: none;">
                 <div class="error-content">
                     <h3>Unable to fetch data</h3>
                     <p>Please check your connection and try again.</p>
                 </div>
             </div>
-            
+
             <div class="markets-container" style="display: none;">
                 <div class="analysis-info" style="display: none;">
                     <div class="content-summary">
@@ -48,7 +56,7 @@
                         <p class="summary-text"></p>
                     </div>
                 </div>
-                
+
                 <div class="markets-header">
                     <h2 id="markets-title">Active Events</h2>
                     <div class="markets-count">0 open events</div>
@@ -57,7 +65,7 @@
             </div>
         </div>
     </div>
-    
+
     <script src="market-suggestions.js"></script>
 </body>
 </html>

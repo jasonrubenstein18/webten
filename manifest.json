@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Webten",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Reads webpage content and suggests relevant markets on Kalshi or Polymarket",
   "permissions": [
     "activeTab",

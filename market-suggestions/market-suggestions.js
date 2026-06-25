@@ -443,7 +443,7 @@ function createRelevantMarketElement(market) {
     };
     const formatVolume = (vol) => {
         if (vol == null || vol === undefined || vol === 0) return '0';
-        return vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : vol.toString();
+        return vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : Math.round(vol).toString();
     };
     
     // Build sub-markets HTML
@@ -491,7 +491,7 @@ function createRelevantMarketElement(market) {
                             <span class="sub-ticker">${escapeHtml(sub.ticker)}</span>
                             <span class="volume">Vol: ${formatVolume(sub.volume_24h)}</span>
                         </div>
-                        ${sub.mispricing && sub.mispricing !== 'No mispricing detected' && sub.mispricing !== 'Error analyzing mispricing' && sub.mispricing !== 'No Mispricing Found' && !sub.mispricing.startsWith('No Mispricing Found') ? `<div class="mispricing-analysis">${escapeHtml(sub.mispricing)}</div>` : ''}
+                        ${sub.mispricing && sub.mispricing !== 'No mispricing detected' && sub.mispricing !== 'Error analyzing mispricing' && sub.mispricing !== 'No Mispricing Found' && !sub.mispricing.startsWith('No Mispricing Found') && sub.mispricing !== 'Analysis skipped' && !sub.mispricing.startsWith('Mispricing analysis skipped') ? `<div class="mispricing-analysis">${escapeHtml(sub.mispricing)}</div>` : ''}
                     </div>
                 `;
             }

@@ -4,36 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webten</title>
-    <link rel="stylesheet" href="popup.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dist/styles.css">
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Webten</h1>
-            <p class="subtitle">Choose your analysis mode</p>
+<body class="page-popup">
+    <div class="app">
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-mark">W</div>
+                <div class="brand-text">
+                    <span class="brand-title">Webten</span>
+                    <span class="brand-sub">Market intelligence</span>
+                </div>
+            </div>
+            <span class="header-badge">Beta</span>
         </header>
-        
+
+        <hr class="divider-line">
+
+        <p class="section-label">Choose analysis mode</p>
+
         <div class="navigation-options">
-            <button id="market-suggestions-btn" class="nav-btn primary">
-                <div class="nav-content">
-                    <h3>Market Suggestions</h3>
-                    <p>Find relevant markets for page content</p>
-                </div>
+            <button id="market-suggestions-btn" class="nav-btn nav-btn--primary">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"/>
+                        <path d="m7 14 3-3 3 3 4-5"/>
+                    </svg>
+                </span>
+                <span class="nav-content">
+                    <span class="nav-title">Market Suggestions</span>
+                    <span class="nav-desc">Find relevant Kalshi & Polymarket markets</span>
+                </span>
+                <span class="nav-arrow">&rarr;</span>
             </button>
-            
-            <button id="understand-content-btn" class="nav-btn secondary">
-                <div class="nav-content">
-                    <h3>Understand Content</h3>
-                    <p>Deep content analysis</p>
-                </div>
+
+            <button id="understand-content-btn" class="nav-btn">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                </span>
+                <span class="nav-content">
+                    <span class="nav-title">Understand Content</span>
+                    <span class="nav-desc">Deep analysis & summaries of any page</span>
+                </span>
+                <span class="nav-arrow">&rarr;</span>
             </button>
         </div>
-        
-        <div class="footer">
-            <p class="version">v1.0.0</p>
+
+        <div class="app-footer">
+            <span class="version">v1.0.1</span>
+            <span class="footer-dot"></span>
+            <span class="footer-note">Kalshi &middot; Polymarket</span>
         </div>
     </div>
-    
+
     <script src="popup.js"></script>
 </body>
 </html>

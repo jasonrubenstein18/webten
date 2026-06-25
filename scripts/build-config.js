@@ -36,6 +36,8 @@ if (typeof self.CONFIG === 'undefined') {
     self.CONFIG = {
         MAX_PAGES: 20,
         EVENTS_PER_PAGE: 200, // For Kalshi
+        KALSHI_PAGE_DELAY: 250, // ms between paginated Kalshi requests to avoid rate limiting
+        KALSHI_MAX_CONCURRENCY: 4, // max simultaneous Kalshi event fetches to avoid rate limiting
         MARKETS_PER_PAGE: 200, // For Polymarket
         MAX_RELEVANT_MARKETS: 8,
         MAX_MARKETS_FOR_ANALYSIS: 4000,
@@ -49,6 +51,7 @@ if (typeof self.CONFIG === 'undefined') {
         MAX_RETRY_ATTEMPTS: 3,
         RETRY_DELAY_BASE: 1000,
         MAX_MISPRICING_ANALYSES: 100,
+        MISPRICING_SKIP_THRESHOLD: 30, // Skip mispricing analysis entirely when more than this many markets are relevant (too slow)
         MISPRICING_CACHE_EXPIRY: 60 * 60 * 1000
     };
 }

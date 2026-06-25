@@ -4,26 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Understand Content</title>
-    <link rel="stylesheet" href="understand-content.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../dist/styles.css">
 </head>
-<body>
+<body class="page-understand">
     <div class="container">
         <div class="back-button">
-            <button id="back-btn" class="btn-back">← Back</button>
+            <button id="back-btn" class="btn-back">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Back
+            </button>
         </div>
-        
+
         <header>
             <h1>Understand Content</h1>
             <p class="subtitle">Choose your analysis style</p>
         </header>
-        
+
         <div class="content">
             <!-- Loading State -->
             <div class="loading" id="loading" style="display: none;">
                 <div class="spinner"></div>
-                <p class="loading-message">Analyzing content...</p>
-                <div class="loading-details">Extracting and summarizing webpage content...</div>
-                
+                <p class="loading-message">Analyzing content&hellip;</p>
+                <div class="loading-details">Extracting and summarizing webpage content&hellip;</div>
+
                 <!-- Progress Bar -->
                 <div class="progress-container">
                     <div class="progress-bar">
@@ -31,11 +37,11 @@
                     </div>
                     <div class="progress-text">
                         <span class="progress-percentage" id="progress-percentage">0%</span>
-                        <span class="progress-phase" id="progress-phase">Starting...</span>
+                        <span class="progress-phase" id="progress-phase">Starting&hellip;</span>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Error State -->
             <div class="error" id="error" style="display: none;">
                 <div class="error-icon"></div>
@@ -43,7 +49,7 @@
                 <p class="error-message">An error occurred while analyzing the content.</p>
                 <button id="retry-btn" class="btn-retry">Try Again</button>
             </div>
-            
+
             <!-- Content Analysis Results -->
             <div class="analysis-container" id="analysis-container" style="display: none;">
                 <div class="analysis-header">
@@ -53,11 +59,11 @@
                         <a href="#" class="source-url" id="source-url" target="_blank">View Original</a>
                     </div>
                 </div>
-                
+
                 <div class="summary-content" id="summary-content">
                     <!-- Summary will be displayed here -->
                 </div>
-                
+
                 <div class="analysis-actions">
                     <div class="secondary-actions">
                         <button id="open-full-view-btn" class="btn-secondary">Open in New Tab</button>
@@ -65,60 +71,60 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Initial State - Analysis Options -->
             <div class="initial-state" id="initial-state">
                 <div class="feature-icon"></div>
                 <h2>Content Analysis</h2>
-                <p>Choose your analysis style:</p>
-                
+                <p>Choose your analysis style</p>
+
                 <div class="analysis-options">
                     <div class="analysis-option">
                         <div class="option-header">
-                            <h3>Deep Content Analysis</h3>
+                            <h3>Deep Analysis</h3>
                             <span class="option-badge comprehensive">Comprehensive</span>
                         </div>
                         <div class="features">
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>Deep content analysis with context</span>
                             </div>
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>Key insights extraction</span>
                             </div>
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>Structured markdown summaries</span>
                             </div>
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>Research-backed analysis</span>
                             </div>
                         </div>
                         <button id="deep-analysis-btn" class="btn-primary">Deep Analysis</button>
                     </div>
-                    
+
                     <div class="analysis-option">
                         <div class="option-header">
                             <h3>Quick Summary</h3>
-                            <span class="option-badge quick">Newsletter Style</span>
+                            <span class="option-badge quick">Newsletter</span>
                         </div>
                         <div class="features">
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>Smart, snappy, and cheeky tone</span>
                             </div>
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>Headline + bullet points format</span>
                             </div>
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>Lean, fun, and engaging</span>
                             </div>
                             <div class="feature">
-                                <span class="feature-bullet">•</span>
+                                <span class="feature-bullet">&bull;</span>
                                 <span>"Why it matters" wrap-up</span>
                             </div>
                         </div>
@@ -128,7 +134,7 @@
             </div>
         </div>
     </div>
-    
+
     <script src="understand-content.js"></script>
 </body>
 </html>

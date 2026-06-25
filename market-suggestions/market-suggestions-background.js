@@ -10,6 +10,36 @@ importScripts('/market-suggestions/api-client.js');
 var BASE = 'https://api.elections.kalshi.com';
 var KALSHI_KEY_ID = 'c2499810-0f10-4a75-9fb0-09e6592e1398';
 
+// Fetch helper that retries on HTTP 429 (rate limit) with exponential backoff.
+// Honors the server-provided Retry-After header when present.
+async function fetchWithRateLimitRetry(url, options = {}) {
+    const maxAttempts = CONFIG.MAX_RETRY_ATTEMPTS;
+
+    for (let attempt = 0; attempt <= maxAttempts; attempt++) {
+        const response = await fetch(url, options);
+
+        if (response.status !== 429) {
+            return response;
+        }
+
+        if (attempt === maxAttempts) {
+            return response; // Out of retries, let caller handle the 429
+        }
+
+        // Prefer the server's Retry-After hint, otherwise use exponential backoff.
+        const retryAfterHeader = response.headers.get('Retry-After');
+        const retryAfterMs = retryAfterHeader
+            ? Number(retryAfterHeader) * 1000
+            : CONFIG.RETRY_DELAY_BASE * Math.pow(2, attempt);
+        const delayMs = Number.isFinite(retryAfterMs) && retryAfterMs > 0
+            ? retryAfterMs
+            : CONFIG.RETRY_DELAY_BASE * Math.pow(2, attempt);
+
+        console.warn(`Rate limited (429) on ${url}. Retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxAttempts}).`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+}
+
 // Fetch events from Kalshi API with pagination support
 async function fetchKalshiMarkets() {
     try {
@@ -31,7 +61,7 @@ async function fetchKalshiMarkets() {
             }
             
             console.log('Making API request to:', `${BASE}${path}`);
-            const response = await fetch(`${BASE}${path}`, {
+            const response = await fetchWithRateLimitRetry(`${BASE}${path}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json'
@@ -68,6 +98,11 @@ async function fetchKalshiMarkets() {
                 console.error(`Failed to parse page ${pageCount} response:`, parseError);
                 console.error('Response text:', responseText.substring(0, 500));
                 throw new Error(`Failed to parse API response for page ${pageCount}`);
+            }
+            
+            // Throttle between pages to stay under Kalshi's rate limit.
+            if (cursor && pageCount < maxPages) {
+                await new Promise(resolve => setTimeout(resolve, CONFIG.KALSHI_PAGE_DELAY));
             }
             
         } while (cursor && pageCount < maxPages);
@@ -492,6 +527,30 @@ Be mathematically rigorous. Use only your knowledge base.`;
     }
 }
 
+// Kalshi changed its API schema: integer-cent price fields (yes_bid, no_bid,
+// last_price, ...) are now null and replaced by dollar-string fields
+// (yes_bid_dollars: "0.4800", ...). Volume/open interest moved to *_fp floats.
+// These helpers normalize the response back into the cent/number values the
+// rest of the extension expects, preferring legacy fields when still present.
+function centsFromDollars(dollarStr) {
+    if (dollarStr === null || dollarStr === undefined || dollarStr === '') return null;
+    const value = parseFloat(dollarStr);
+    if (!Number.isFinite(value)) return null;
+    return Math.round(value * 100);
+}
+
+function resolveCents(legacyCentValue, dollarStr) {
+    if (legacyCentValue !== null && legacyCentValue !== undefined) return legacyCentValue;
+    return centsFromDollars(dollarStr);
+}
+
+function resolveNumber(legacyValue, fpStr) {
+    if (legacyValue !== null && legacyValue !== undefined) return legacyValue;
+    if (fpStr === null || fpStr === undefined || fpStr === '') return 0;
+    const value = parseFloat(fpStr);
+    return Number.isFinite(value) ? value : 0;
+}
+
 async function fetchEventMarkets(eventTicker) {
     try {
         console.log(`Fetching markets for event: ${eventTicker}`);
@@ -508,7 +567,7 @@ async function fetchEventMarkets(eventTicker) {
                 path += `&cursor=${encodeURIComponent(cursor)}`;
             }
             
-            const response = await fetch(`${BASE}${path}`, {
+            const response = await fetchWithRateLimitRetry(`${BASE}${path}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json'
@@ -527,10 +586,26 @@ async function fetchEventMarkets(eventTicker) {
             
             cursor = data.cursor;
             
+            // Throttle between pages to stay under Kalshi's rate limit.
+            if (cursor) {
+                await new Promise(resolve => setTimeout(resolve, CONFIG.KALSHI_PAGE_DELAY));
+            }
+            
         } while (cursor);
         
         // Process markets to extract relevant data
         const processedMarkets = allMarkets.map(market => {
+            // Normalize price/volume fields across legacy (integer cents) and the
+            // newer dollar-string / *_fp schema.
+            const yesBid = resolveCents(market.yes_bid, market.yes_bid_dollars);
+            const yesAsk = resolveCents(market.yes_ask, market.yes_ask_dollars);
+            const noBid = resolveCents(market.no_bid, market.no_bid_dollars);
+            const noAsk = resolveCents(market.no_ask, market.no_ask_dollars);
+            const lastPrice = resolveCents(market.last_price, market.last_price_dollars);
+            const volume = resolveNumber(market.volume, market.volume_fp);
+            const volume24h = resolveNumber(market.volume_24h, market.volume_24h_fp);
+            const openInterest = resolveNumber(market.open_interest, market.open_interest_fp);
+
             // Check for settlement/outcome information
             let settlement = null;
             let outcome = null;
@@ -549,8 +624,8 @@ async function fetchEventMarkets(eventTicker) {
             
             // Only mark as resolved if status is explicitly inactive AND both prices are 100¢
             // This indicates a truly closed/resolved market
-            if (!isResolved && market.status === 'inactive' && market.yes_ask !== null && market.no_ask !== null) {
-                if (market.yes_ask === 100 && market.no_ask === 100) {
+            if (!isResolved && market.status === 'inactive' && yesAsk !== null && noAsk !== null) {
+                if (yesAsk === 100 && noAsk === 100) {
                     isResolved = true;
                 }
             }
@@ -562,15 +637,15 @@ async function fetchEventMarkets(eventTicker) {
                     resolvedOutcome = settlement;
                 } else if (outcome) {
                     resolvedOutcome = outcome;
-                } else if (market.last_price !== null && market.last_price !== undefined) {
+                } else if (lastPrice !== null && lastPrice !== undefined) {
                     // If last price is 0, it's likely "No", if 100, it's likely "Yes"
-                    resolvedOutcome = market.last_price === 0 ? 'No' : market.last_price === 100 ? 'Yes' : null;
-                } else if (market.yes_ask !== null && market.no_ask !== null && (market.status === 'inactive' || market.status === 'finalized')) {
+                    resolvedOutcome = lastPrice === 0 ? 'No' : lastPrice === 100 ? 'Yes' : null;
+                } else if (yesAsk !== null && noAsk !== null && (market.status === 'inactive' || market.status === 'finalized')) {
                     // For inactive or finalized markets with both prices at 100¢, check last_price for outcome
-                    if (market.yes_ask === 100 && market.no_ask === 100) {
-                        if (market.last_price !== null && market.last_price !== undefined) {
+                    if (yesAsk === 100 && noAsk === 100) {
+                        if (lastPrice !== null && lastPrice !== undefined) {
                             // If last_price is 0, it's "No", if 100, it's "Yes"
-                            resolvedOutcome = market.last_price === 0 ? 'No' : market.last_price === 100 ? 'Yes' : 'No';
+                            resolvedOutcome = lastPrice === 0 ? 'No' : lastPrice === 100 ? 'Yes' : 'No';
                         } else {
                             // Default to 'No' if no last_price available
                             resolvedOutcome = 'No';
@@ -586,14 +661,14 @@ async function fetchEventMarkets(eventTicker) {
                 yes_sub_title: market.yes_sub_title || '',
                 no_sub_title: market.no_sub_title || '',
                 market_type: market.market_type || 'binary',
-                yes_bid: market.yes_bid !== null && market.yes_bid !== undefined ? market.yes_bid : null,
-                yes_ask: market.yes_ask !== null && market.yes_ask !== undefined ? market.yes_ask : null,
-                no_bid: market.no_bid !== null && market.no_bid !== undefined ? market.no_bid : null,
-                no_ask: market.no_ask !== null && market.no_ask !== undefined ? market.no_ask : null,
-                last_price: market.last_price !== null && market.last_price !== undefined ? market.last_price : null,
-                volume: market.volume || 0,
-                volume_24h: market.volume_24h || 0,
-                open_interest: market.open_interest || 0,
+                yes_bid: yesBid,
+                yes_ask: yesAsk,
+                no_bid: noBid,
+                no_ask: noAsk,
+                last_price: lastPrice,
+                volume: volume,
+                volume_24h: volume24h,
+                open_interest: openInterest,
                 close_time: market.close_time,
                 status: market.status,
                 isResolved: isResolved,
@@ -1060,22 +1135,26 @@ function handleMarketSuggestionsMessage(request, sender, sendResponse) {
                     // Step 4: Fetch sub-markets in parallel for better performance
                     console.log(`Starting parallel fetch of ${relevantResult.markets.length} events...`);
                     
-                    // Create parallel promises for all sub-market fetching
-                    const subMarketPromises = relevantResult.markets.map(async (event, index) => {
+                    // Per-event fetch task. Kept as a factory so we can bound concurrency
+                    // below instead of firing every request at once (which trips Kalshi's
+                    // rate limit and returns HTTP 429).
+                    let completedEvents = 0;
+                    const fetchEventTask = async (event, index) => {
                         try {
                             console.log(`Starting fetch for event ${index + 1}/${relevantResult.markets.length}: ${event.ticker}`);
                             const subMarkets = await fetchEventMarkets(event.ticker);
                             event.subMarkets = subMarkets;
                             
-                            // Update progress for this specific event
-                            const percentage = 75 + ((index + 1) / relevantResult.markets.length) * 10;
+                            // Update progress as each event completes
+                            completedEvents++;
+                            const percentage = 75 + (completedEvents / relevantResult.markets.length) * 10;
                             sendProgress({
                                 phase: 'submarkets',
-                                current: index + 1,
+                                current: completedEvents,
                                 total: relevantResult.markets.length,
                                 percentage: Math.round(percentage),
                                 message: 'Fetching sub-markets...',
-                                details: `Completed ${index + 1}/${relevantResult.markets.length} events...`
+                                details: `Completed ${completedEvents}/${relevantResult.markets.length} events...`
                             });
                             
                             return {
@@ -1086,6 +1165,7 @@ function handleMarketSuggestionsMessage(request, sender, sendResponse) {
                         } catch (error) {
                             console.error(`Error fetching sub-markets for ${event.ticker}:`, error);
                             event.subMarkets = [];
+                            completedEvents++;
                             return {
                                 event: event,
                                 subMarkets: [],
@@ -1093,10 +1173,18 @@ function handleMarketSuggestionsMessage(request, sender, sendResponse) {
                                 error: error.message
                             };
                         }
-                    });
+                    };
                     
-                    // Execute all sub-market fetching in parallel
-                    const subMarketResults = await Promise.all(subMarketPromises);
+                    // Execute sub-market fetching with bounded concurrency to avoid rate limiting.
+                    const concurrency = CONFIG.KALSHI_MAX_CONCURRENCY;
+                    const subMarketResults = [];
+                    for (let i = 0; i < relevantResult.markets.length; i += concurrency) {
+                        const batch = relevantResult.markets.slice(i, i + concurrency);
+                        const batchResults = await Promise.all(
+                            batch.map((event, j) => fetchEventTask(event, i + j))
+                        );
+                        subMarketResults.push(...batchResults);
+                    }
                     
                     // Collect all sub-markets and handle any errors
                     const allSubMarkets = [];
@@ -1116,45 +1204,67 @@ function handleMarketSuggestionsMessage(request, sender, sendResponse) {
                     console.log(`Parallel sub-market fetching completed: ${successCount} successful, ${errorCount} failed, ${allSubMarkets.length} total sub-markets`);
 
                     // Step 5: Analyze mispricing
-                    sendProgress({
-                        phase: 'analysis',
-                        current: 1,
-                        total: 1,
-                        percentage: 85,
-                        message: 'Analyzing mispricing...',
-                        details: 'Running market analysis algorithms...'
-                    });
-                    
-                    // Limit to max analyses
-                    const subMarketsToAnalyze = allSubMarkets.slice(0, CONFIG.MAX_MISPRICING_ANALYSES);
+                    // Skip the (slow) per-market mispricing analysis entirely when too many
+                    // markets are relevant, since each market requires a separate Grok call.
+                    if (allSubMarkets.length > CONFIG.MISPRICING_SKIP_THRESHOLD) {
+                        console.log(`Skipping mispricing analysis: ${allSubMarkets.length} markets exceed threshold of ${CONFIG.MISPRICING_SKIP_THRESHOLD}.`);
 
-                    // Parallelize analyses with progress tracking
-                    let completedAnalyses = 0;
-                    const analysisPromises = subMarketsToAnalyze.map(async (subMarket) => {
-                        subMarket.mispricing = await analyzeMarketMispricing(subMarket, relevantResult.contentSummary);
-                        completedAnalyses++;
-                        
-                        // Update progress (85-95% range)
-                        const percentage = 85 + (completedAnalyses / subMarketsToAnalyze.length) * 10;
+                        const skipMessage = `Mispricing analysis skipped (${allSubMarkets.length} markets exceeds limit of ${CONFIG.MISPRICING_SKIP_THRESHOLD})`;
+                        for (let event of relevantResult.markets) {
+                            for (let subMarket of event.subMarkets) {
+                                subMarket.mispricing = skipMessage;
+                            }
+                        }
+
                         sendProgress({
                             phase: 'mispricing',
-                            current: completedAnalyses,
-                            total: subMarketsToAnalyze.length,
-                            percentage: Math.round(percentage),
-                            message: 'Analyzing mispricing...',
-                            details: `Analyzed ${completedAnalyses}/${subMarketsToAnalyze.length} markets...`
+                            current: 1,
+                            total: 1,
+                            percentage: 95,
+                            message: 'Skipped mispricing analysis',
+                            details: `Too many markets (${allSubMarkets.length}) — skipped to save time.`
                         });
-                        
-                        return subMarket;
-                    });
+                    } else {
+                        sendProgress({
+                            phase: 'analysis',
+                            current: 1,
+                            total: 1,
+                            percentage: 85,
+                            message: 'Analyzing mispricing...',
+                            details: 'Running market analysis algorithms...'
+                        });
 
-                    await Promise.all(analysisPromises);
+                        // Limit to max analyses
+                        const subMarketsToAnalyze = allSubMarkets.slice(0, CONFIG.MAX_MISPRICING_ANALYSES);
 
-                    // For sub-markets not analyzed, set default
-                    for (let event of relevantResult.markets) {
-                        for (let subMarket of event.subMarkets) {
-                            if (!subMarket.mispricing) {
-                                subMarket.mispricing = 'Analysis skipped';
+                        // Parallelize analyses with progress tracking
+                        let completedAnalyses = 0;
+                        const analysisPromises = subMarketsToAnalyze.map(async (subMarket) => {
+                            subMarket.mispricing = await analyzeMarketMispricing(subMarket, relevantResult.contentSummary);
+                            completedAnalyses++;
+
+                            // Update progress (85-95% range)
+                            const percentage = 85 + (completedAnalyses / subMarketsToAnalyze.length) * 10;
+                            sendProgress({
+                                phase: 'mispricing',
+                                current: completedAnalyses,
+                                total: subMarketsToAnalyze.length,
+                                percentage: Math.round(percentage),
+                                message: 'Analyzing mispricing...',
+                                details: `Analyzed ${completedAnalyses}/${subMarketsToAnalyze.length} markets...`
+                            });
+
+                            return subMarket;
+                        });
+
+                        await Promise.all(analysisPromises);
+
+                        // For sub-markets not analyzed, set default
+                        for (let event of relevantResult.markets) {
+                            for (let subMarket of event.subMarkets) {
+                                if (!subMarket.mispricing) {
+                                    subMarket.mispricing = 'Analysis skipped';
+                                }
                             }
                         }
                     }
