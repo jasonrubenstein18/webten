@@ -1,5 +1,7 @@
 # Webten
 
+[Available on the Chrome Web Store](https://chromewebstore.google.com/detail/webten/ieoeiafmjnehhlohnappepiimfiihcnc)
+
 A Manifest V3 Chrome extension that reads the content of the page you are on and surfaces relevant prediction markets (Kalshi and Polymarket), plus an on-demand page summarizer. All LLM calls are routed through a thin server-side proxy so API keys never ship in the extension bundle.
 
 ## What it does
